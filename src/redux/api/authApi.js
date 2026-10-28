@@ -44,7 +44,9 @@ export const authApi = createApi({
         return {
           url: "/login",
           method: "POST",
-          body,
+          // Form-encoded (not JSON) so the browser skips the CORS preflight,
+          // which the Catalyst gateway answers without CORS headers
+          body: new URLSearchParams(body),
         };
       },
     }),
