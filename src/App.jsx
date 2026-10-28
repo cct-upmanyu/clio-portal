@@ -1,7 +1,9 @@
+import Home from './pages/Home.jsx'
+
 function App() {
   return (
     <>
-      <div>CLIENT PORTAL with env {import.meta.env.VITE_API_BASE_URL}</div>
+      <Home />
     </>
   )
 }
