@@ -1,5 +1,9 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Kept in the "base" layer so Tailwind utilities (p-8, m-4, ...) still override it.
+   Unlayered, this rule beats every Tailwind spacing class. */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }

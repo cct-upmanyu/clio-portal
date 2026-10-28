@@ -1,52 +1,107 @@
-import { useState } from 'react'
-import {
-  useGetMeQuery,
-  useLoginMutation,
-  useUpdateMeMutation,
-  useDeleteMeMutation,
-} from '../redux/api/authApi'
-
-const show = (result, fallback) => JSON.stringify(result.data ?? result.error ?? fallback, null, 2)
+import Button from '../components/ui/Button'
+import Section from '../components/ui/Section'
+import EmptyState from '../components/ui/EmptyState'
+import EventItem from '../components/ui/EventItem'
+import ListItem from '../components/ui/ListItem'
+import Page from '../components/ui/Page'
+import PageHeader from '../components/ui/PageHeader'
+import SectionHeader from '../components/ui/SectionHeader'
+import MatterSummaryCard from '../components/home/MatterSummaryCard'
+import LegalTeamCard from '../components/home/LegalTeamCard'
+import { CalendarIcon, DocumentsIcon, InboxIcon, MessageIcon } from '../components/ui/icons'
+import { currentUser } from '../data/sampleData'
+import { useMatters } from '../hooks/useMatters'
+import { greeting } from '../utils/greeting'
+import { formatDate, formatShort } from '../utils/dates'
+import { fileKind } from '../utils/files'
+import { sortTasks, taskStatus } from '../utils/tasks'
 
 function Home() {
-  const [name, setName] = useState('')
-  const [password, setPassword] = useState('')
-
-  const meQuery = useGetMeQuery()
-  const [login, loginResult] = useLoginMutation()
-  const [updateMe, updateResult] = useUpdateMeMutation()
-  const [deleteMe, deleteResult] = useDeleteMeMutation()
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    login({ name, password })
-  }
+  const { selectedMatter: matter } = useMatters()
+  const firstName = currentUser.name.split(' ')[0]
+  const byNewest = (key) => (a, b) => new Date(b[key]) - new Date(a[key])
+  const recentDocuments = [...matter.documents].sort(byNewest('sharedAt')).slice(0, 3)
+  const recentMessages = matter.messages.filter((m) => !m.fromMe).sort(byNewest('sentAt')).slice(0, 3)
+  const dueTasks = sortTasks(matter.tasks).filter((t) => t.status !== 'completed').slice(0, 3)
 
   return (
-    <div className="p-8">
-      <h1 className="text-4xl font-bold text-blue-600">Clio Manage Law Firm</h1>
+    <Page>
+      <PageHeader
+        title={`${greeting()}, ${firstName}`}
+        description={`Here's the latest on ${matter.title.toLowerCase()} (${matter.number}).`}
+        action={<Button to="/messages" icon={MessageIcon}>Message your attorney</Button>}
+      />
 
-      <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <MatterSummaryCard matter={matter} />
 
-      <h2>GET /auth/me</h2>
-      <button onClick={() => meQuery.refetch()}>Refetch</button>
-      <pre>{show(meQuery, 'Loading...')}</pre>
+      <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:divide-x lg:divide-line">
+        <div className="flex min-w-0 flex-col">
+          <Section>
+            <SectionHeader title="Recently shared documents" linkLabel="View all" to="/documents" />
+            {recentDocuments.length > 0 ? (
+              <div className="flex flex-col divide-y divide-divider">
+                {recentDocuments.map((doc) => (
+                  <ListItem key={doc.id} to="/documents" kind={fileKind(doc.name)} title={doc.name} meta={`Shared by ${doc.sharedBy} · ${formatDate(doc.sharedAt)}`} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon={DocumentsIcon} title="No documents yet">
+                Files your legal team shares with you will appear here.
+              </EmptyState>
+            )}
+          </Section>
 
-      <h2>POST /auth/login</h2>
-      <form onSubmit={handleSubmit}>
-        <button type="submit" disabled={loginResult.isLoading}>Login</button>
-      </form>
-      <pre>{show(loginResult, 'Not sent')}</pre>
+          <Section>
+            <SectionHeader title="Recent messages" linkLabel="Open inbox" to="/messages" />
+            {recentMessages.length > 0 ? (
+              <div className="flex flex-col divide-y divide-divider">
+                {recentMessages.map((msg) => (
+                  <ListItem key={msg.id} to="/messages" kind="message" title={msg.author} meta={msg.body || `Sent ${msg.attachment?.name}`} trailing={formatShort(msg.sentAt)} unread={msg.unread} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon={InboxIcon} title="No messages">
+                Conversations with your legal team about this matter will appear here.
+              </EmptyState>
+            )}
+          </Section>
+        </div>
 
-      <h2>PUT /auth/me</h2>
-      <button onClick={() => updateMe({ name, password })} disabled={updateResult.isLoading}>Update</button>
-      <pre>{show(updateResult, 'Not sent')}</pre>
+        <div className="flex min-w-0 flex-col">
+          <Section>
+            <SectionHeader title="Tasks due soon" linkLabel="View all" to="/tasks" />
+            {dueTasks.length > 0 ? (
+              <div className="flex flex-col divide-y divide-divider">
+                {dueTasks.map((task) => (
+                  <ListItem key={task.id} to="/tasks" kind="task" title={task.title} meta={taskStatus(task).label} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="You're all caught up">
+                No tasks due soon. We'll let you know when something needs your attention.
+              </EmptyState>
+            )}
+          </Section>
 
-      <h2>DELETE /auth/me</h2>
-      <button onClick={() => deleteMe({ name })} disabled={deleteResult.isLoading}>Delete</button>
-      <pre>{show(deleteResult, 'Not sent')}</pre>
-    </div>
+          <Section>
+            <SectionHeader title="Upcoming events" linkLabel="View all" to="/events" />
+            {matter.events.length > 0 ? (
+              <div className="flex flex-col divide-y divide-divider">
+                {matter.events.slice(0, 3).map((event) => (
+                  <EventItem key={event.id} to="/events" {...event} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon={CalendarIcon} title="No upcoming events">
+                We'll let you know when a new event is scheduled.
+              </EmptyState>
+            )}
+          </Section>
+
+          <LegalTeamCard />
+        </div>
+      </div>
+    </Page>
   )
 }
 
