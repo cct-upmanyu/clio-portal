@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "David Smith Law Firm – Client Portal",
+  "short_name": "Client Portal",
+  "description": "Secure client portal for David Smith Law Firm, PLLC: messages, tasks, documents, events and bills for your matter.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0B5CAD",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
