@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- ?v= forces browsers to refetch; bump it whenever the icon changes -->
+    <!-- .ico for browsers without SVG favicon support; the square SVG wins where supported -->
+    <link rel="icon" href="/favicon.ico?v=5" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Client Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

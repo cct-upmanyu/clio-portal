@@ -40,7 +40,7 @@ function MessageBubble({ message, firstOfRun }) {
 
       <div
         className={`flex max-w-[min(560px,80%)] flex-col gap-1.5 rounded-2xl px-3.5 py-2.5 ${
-          fromMe ? 'bg-brand-soft' : 'border border-line bg-white'
+          fromMe ? 'bg-[#D3E6FA]' : 'border border-line bg-white'
         } ${firstOfRun ? (fromMe ? 'rounded-tr-md' : 'rounded-tl-md') : ''}`}
       >
         {!fromMe && firstOfRun && <span className="text-[13px] font-semibold">{author}</span>}

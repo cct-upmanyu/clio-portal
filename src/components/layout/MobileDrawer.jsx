@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import logo from '../../assets/Firm_Logo.webp'
+import BrandLogo from '../ui/BrandLogo'
 import Avatar from '../ui/Avatar'
 import { CloseIcon, HelpIcon, SettingsIcon, SignOutIcon } from '../ui/icons'
 import { firm } from '../../data/sampleData'
@@ -45,15 +45,17 @@ function MobileDrawer({ open, onClose, user }) {
         className="fixed inset-y-0 left-0 right-auto m-0 h-dvh max-h-none w-[300px] max-w-[85vw] bg-navy p-0 text-white backdrop:bg-navy/50"
       >
         <div className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-4">
-          <div className="flex items-center justify-between gap-2 px-2">
-            <Link to="/" onClick={onClose} aria-label="Client portal home" className="flex rounded-lg bg-white px-2.5 py-2">
-              <img src={logo} alt={firm.name} className="h-8 w-auto" />
+          {/* Centered brand header, same as the desktop Sidebar; close button pinned top-right */}
+          <div className="relative border-b border-white/10 px-2 pb-5 pt-3">
+            <Link to="/" onClick={onClose} aria-label="Client portal home" className="flex flex-col items-center gap-3">
+              <BrandLogo lightClass="h-12" darkClass="size-20" frameClass="flex rounded-xl bg-white px-3.5 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.25)]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-nav-muted">Client Portal</span>
             </Link>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close menu"
-              className="flex size-10 cursor-pointer items-center justify-center rounded-lg text-nav-text hover:bg-white/10 hover:text-white"
+              className="absolute -right-1 -top-1 flex size-10 cursor-pointer items-center justify-center rounded-lg text-nav-text hover:bg-white/10 hover:text-white"
             >
               <CloseIcon className="size-5" />
             </button>

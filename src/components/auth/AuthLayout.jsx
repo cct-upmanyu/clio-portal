@@ -1,9 +1,9 @@
-import logo from '../../assets/Firm_Logo.webp'
+import BrandLogo from '../ui/BrandLogo'
 
 function AuthLayout({ children, footer }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-canvas px-4 py-10 text-ink max-sm:gap-4 max-sm:py-5">
-      <img src={logo} alt="David Smith Law Firm, PLLC" className="h-16 w-auto rounded-md max-sm:h-12" />
+      <BrandLogo lightClass="h-16 rounded-md max-sm:h-12" darkClass="size-24 max-sm:size-20" />
 
       <main className="flex w-full max-w-[460px] flex-col gap-5 rounded-xl border border-line bg-white px-8 py-8 max-sm:gap-4 max-sm:px-5 max-sm:py-6">
         {children}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import logo from '../../assets/Firm_Logo.webp'
+import BrandLogo from '../ui/BrandLogo'
 import { firm } from '../../data/sampleData'
 import { HelpIcon, SignOutIcon } from '../ui/icons'
 import MainNav, { navItemClass, navItemIdleClass } from './MainNav'
@@ -15,11 +15,9 @@ function Sidebar() {
       aria-label="Sidebar"
       className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-5 overflow-y-auto bg-navy px-3 py-5 text-white lg:flex"
     >
-      <Link to="/" className="flex flex-col items-start gap-2.5 px-2" aria-label="Client portal home">
-        <span className="flex rounded-lg bg-white px-2.5 py-2">
-          <img src={logo} alt={firm.name} className="h-9 w-auto" />
-        </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-nav-muted">Client Portal</span>
+      <Link to="/" className="flex flex-col items-center gap-3 border-b border-white/10 px-2 pb-5 pt-1" aria-label="Client portal home">
+        <BrandLogo lightClass="h-12" darkClass="size-20" frameClass="flex rounded-xl bg-white px-3.5 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.25)]" />
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-nav-muted">Client Portal</span>
       </Link>
 
       <MainNav />

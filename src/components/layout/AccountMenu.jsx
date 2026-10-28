@@ -29,18 +29,18 @@ function AccountMenu({ user }) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Account menu for ${user.name}`}
-        className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-full border bg-white py-1 pl-1 pr-2 ${open ? 'border-brand' : 'border-line hover:border-field'}`}
+        className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-full border py-1 pl-1 pr-2 ${open ? 'border-white/60 bg-white/15' : 'border-white/35 hover:border-white/60 hover:bg-white/15'}`}
       >
-        <Avatar name={user.name} size="xs" />
-        <span className="text-sm font-medium max-sm:hidden">{user.name}</span>
-        <ChevronDownIcon className={`size-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+        <Avatar name={user.name} size="xs" inverted />
+        <span className="text-sm font-medium text-white max-sm:hidden">{user.name}</span>
+        <ChevronDownIcon className={`size-4 text-white/80 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label="Account"
-          className="absolute right-0 top-[calc(100%+8px)] z-30 flex w-[300px] max-w-[calc(100vw-32px)] flex-col rounded-xl border border-line bg-white p-2 shadow-[0_16px_40px_rgba(10,31,61,0.16)]"
+          className="absolute right-0 top-[calc(100%+8px)] z-30 flex w-[300px] text-ink max-w-[calc(100vw-32px)] flex-col rounded-xl border border-line bg-white p-2 shadow-[0_16px_40px_rgba(10,31,61,0.16)]"
         >
           <div className="flex items-center gap-3 px-3 pb-3.5 pt-2.5">
             <Avatar name={user.name} />
