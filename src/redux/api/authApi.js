@@ -44,9 +44,25 @@ export const authApi = createApi({
         return {
           url: "/login",
           method: "POST",
-          // Form-encoded (not JSON) so the browser skips the CORS preflight,
-          // which the Catalyst gateway answers without CORS headers
-          body: new URLSearchParams(body),
+          body,
+        };
+      },
+    }),
+    updateMe: builder.mutation({
+      query(body) {
+        return {
+          url: "/me",
+          method: "PUT",
+          body,
+        };
+      },
+    }),
+    deleteMe: builder.mutation({
+      query(body) {
+        return {
+          url: "/me",
+          method: "DELETE",
+          body,
         };
       },
     }),
@@ -56,4 +72,6 @@ export const authApi = createApi({
 export const {
   useGetMeQuery,
   useLoginMutation,
+  useUpdateMeMutation,
+  useDeleteMeMutation,
 } = authApi;
