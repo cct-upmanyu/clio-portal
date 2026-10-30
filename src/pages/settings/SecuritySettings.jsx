@@ -135,12 +135,7 @@ function SecuritySettings() {
       </Section>
 
       {removing && (
-        <RemoveAuthenticatorDialog
-          key={removing.id}
-          factor={removing}
-          otherFactors={mfa.factors.filter((f) => f.id !== removing.id)}
-          onClose={() => setRemoving(null)}
-        />
+        <RemoveAuthenticatorDialog key={removing.id} factor={removing} onClose={() => setRemoving(null)} />
       )}
       {(dialog === 'add' || dialog === 'enable') && (
         <AddAuthenticatorDialog key={dialogKey} open onClose={closeDialog} enabling={dialog === 'enable'} email={email} />

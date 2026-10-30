@@ -8,12 +8,9 @@ import { toast } from '../../utils/toast'
 
 const FORM_ID = 'remove-authenticator'
 
-const joinNames = (names) =>
-  names.length > 1 ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}` : names[0]
-
 // Confirmed with a code from one of the OTHER authenticators, which proves the one that stays works.
 // Backup codes aren't accepted here.
-function RemoveAuthenticatorDialog({ factor, otherFactors, onClose }) {
+function RemoveAuthenticatorDialog({ factor, onClose }) {
   const [removeFactor, { isLoading }] = useRemoveFactorMutation()
   const handleFailure = useStepUpFailureHandler(onClose)
   const [code, setCode] = useState('')
@@ -21,11 +18,10 @@ function RemoveAuthenticatorDialog({ factor, otherFactors, onClose }) {
   const [attempt, setAttempt] = useState(0)
 
   const name = factor.label || 'Authenticator app'
-  const others = joinNames(otherFactors.map((f) => `"${f.label || 'Authenticator app'}"`))
 
   const submit = async (value = code) => {
     if (isLoading) return
-    if (value.length !== OTP_LENGTH) return setError(`Enter the 6-digit code from ${others}`)
+    if (value.length !== OTP_LENGTH) return setError('Enter the 6-digit code from another device you\'ve set up')
     setError('')
     try {
       await removeFactor({ factorId: factor.id, code: value }).unwrap()
@@ -55,20 +51,12 @@ function RemoveAuthenticatorDialog({ factor, otherFactors, onClose }) {
     >
       <form id={FORM_ID} onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="flex flex-col gap-4">
         <p className="text-sm leading-normal text-body">
-          {otherFactors.length > 1 ? (
-            <>
-              To confirm, enter the current code from <strong className="font-semibold text-ink">any one</strong> of your
-              other authenticators: <strong className="font-semibold text-ink">{others}</strong>.
-            </>
-          ) : (
-            <>To confirm, enter the current code from <strong className="font-semibold text-ink">{others}</strong>.</>
-          )}
-          {' '}A code from &ldquo;{name}&rdquo; itself won't work, so you know the authenticator you keep is working.
+          To confirm, enter the current code from any other device you've set up.
         </p>
         <div className="flex flex-col gap-2">
           <OtpInput
             key={attempt}
-            label="Code from another authenticator"
+            label="Code from another device"
             autoFocus
             invalid={Boolean(error)}
             disabled={isLoading}
