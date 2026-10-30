@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi";
-import { clearAuth, setAuthUser } from "../slices/authSlice";
+import { setAuthCheckFailed, setAuthUser } from "../slices/authSlice";
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -10,8 +10,9 @@ export const authApi = baseApi.injectEndpoints({
           const { data } = await queryFulfilled;
           dispatch(setAuthUser(data.data));
         } catch {
-          // Session errors are handled in baseApi; anything else (server down) still ends the check
-          if (!getState().auth.isAuthInitialized) dispatch(clearAuth());
+          // A real "not signed in" was already handled in baseApi (clearAuth). Anything else means the
+          // server couldn't answer: that's not a sign-out, so the guards offer a retry instead.
+          if (!getState().auth.isAuthInitialized) dispatch(setAuthCheckFailed());
         }
       },
     }),

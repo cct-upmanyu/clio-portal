@@ -12,7 +12,9 @@ export const codeErrorMessage = (err) => {
 }
 
 // Errors the form itself should explain (inline, or by going back a step)
-const INLINE_CODES = ['INVALID_MFA_CODE', 'VALIDATION_FAILED', 'STEP_UP_REQUIRED', 'MFA_SETUP_NOT_STARTED']
+const INLINE_CODES = [
+  'INVALID_MFA_CODE', 'INVALID_PASSWORD', 'PASSWORD_REQUIRED', 'VALIDATION_FAILED', 'STEP_UP_REQUIRED', 'MFA_SETUP_NOT_STARTED',
+]
 
 // For errors from the "confirm it's you" endpoints. Returns true if it dealt with `err`
 // (toast, closing the flow, or signing out); false means the caller should show it inline.
@@ -23,13 +25,13 @@ export function useStepUpFailureHandler(onClose) {
     const { code, message } = err?.data || {}
 
     if (code === 'STEP_UP_LOCKED') {
-      toast.error('Too many incorrect codes', { description: 'For your security, you have been signed out.' })
+      toast.error('Too many incorrect attempts', { description: 'For your security, you have been signed out.' })
       onClose()
       dispatch(baseApi.util.resetApiState())
       dispatch(clearAuth())
       return true
     }
-    if (['STEP_UP_RATE_LIMITED', 'MFA_FACTOR_LIMIT', 'MFA_NOT_SET_UP'].includes(code)) {
+    if (['STEP_UP_RATE_LIMITED', 'MFA_FACTOR_LIMIT', 'MFA_NOT_SET_UP', 'PASSWORD_NOT_SET'].includes(code)) {
       toast.error('Could not continue', { description: message })
       onClose()
       return true

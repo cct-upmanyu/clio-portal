@@ -23,7 +23,7 @@ function StatusBadge({ on }) {
 function SecuritySettings() {
   const { data, isLoading } = useGetMfaFactorsQuery()
   const { email } = useCurrentUser()
-  // 'add' | 'codes' | null; a new key per opening so each dialog starts from step 1
+  // 'enable' | 'add' | 'codes' | null; a new key per opening so each dialog starts from step 1
   const [dialog, setDialog] = useState(null)
   const [dialogKey, setDialogKey] = useState(0)
 
@@ -57,11 +57,13 @@ function SecuritySettings() {
         {isLoading || !mfa ? (
           <div className="flex justify-center py-8 text-brand"><Spinner className="size-6" /></div>
         ) : !mfa.mfaEnabled ? (
-          <div className="flex gap-3 rounded-lg border border-line bg-canvas px-4 py-3">
-            <InfoIcon className="mt-px size-5 shrink-0 text-brand" />
-            <p className="text-sm leading-normal text-body">
-              Two-step verification isn't turned on for your account. Contact your attorney's office if you'd like to use it.
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-line bg-canvas px-4 py-3">
+            <InfoIcon className="size-5 shrink-0 text-brand" />
+            <p className="min-w-[240px] flex-1 text-sm leading-normal text-body">
+              You don't have two-step verification turned on. Turn it on for extra protection. Once it's on, only your
+              attorney's office can turn it off.
             </p>
+            <Button icon={ShieldIcon} onClick={() => openDialog('enable')}>Turn on</Button>
           </div>
         ) : (
           <>
@@ -107,13 +109,15 @@ function SecuritySettings() {
 
             <p className="text-xs leading-normal text-muted">
               Got a new phone? Choose <strong className="font-semibold text-body">Add authenticator</strong> and confirm with your current app or a backup code.
-              If you have neither, contact your attorney's office to reset two-step verification.
+              If you have neither, contact your attorney's office to reset two-step verification. Only your attorney's office can turn it off.
             </p>
           </>
         )}
       </Section>
 
-      {dialog === 'add' && <AddAuthenticatorDialog key={dialogKey} open onClose={closeDialog} />}
+      {(dialog === 'add' || dialog === 'enable') && (
+        <AddAuthenticatorDialog key={dialogKey} open onClose={closeDialog} enabling={dialog === 'enable'} email={email} />
+      )}
       {dialog === 'codes' && (
         <RegenerateBackupCodesDialog key={dialogKey} open onClose={closeDialog} email={email} remaining={mfa?.recoveryCodesRemaining ?? 0} />
       )}

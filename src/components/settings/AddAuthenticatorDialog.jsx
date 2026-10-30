@@ -2,24 +2,29 @@ import { useState } from 'react'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import AuthenticatorQr from '../auth/AuthenticatorQr'
+import BackupCodesPanel, { SavedCodesCheckbox } from '../auth/BackupCodesPanel'
 import OtpInput, { OTP_LENGTH } from '../auth/OtpInput'
 import { inputClass, inputErrorClass, labelClass } from '../auth/styles'
 import ConfirmIdentityStep, { STEP_UP_CACHE_KEY } from './ConfirmIdentityStep'
+import ConfirmPasswordStep from './ConfirmPasswordStep'
 import { useMfaStepUpMutation, useStartAddFactorMutation, useVerifyNewFactorMutation } from '../../redux/api/authApi'
 import { codeErrorMessage, useStepUpFailureHandler } from '../../hooks/useStepUpErrors'
 import { toast } from '../../utils/toast'
 
 const STEPS = {
   confirm: { n: 1, title: 'Confirm it\'s you' },
-  name: { n: 2, title: 'Name your new authenticator' },
+  name: { n: 2, title: 'Name your authenticator' },
   scan: { n: 3, title: 'Scan the QR code' },
-  code: { n: 4, title: 'Enter the code from the new app' },
+  code: { n: 4, title: 'Enter the code from the app' },
+  codes: { n: 5, title: 'Save your backup codes' },
 }
 
 const CONFIRM_FORM_ID = 'add-authenticator-confirm'
 
-// confirm (current app code or backup code) → name → scan QR → code from the new app
-function AddAuthenticatorDialog({ open, onClose }) {
+// Adding another app: confirm (current app code or backup code) → name → scan QR → code from the new app.
+// enabling: turning two-step verification on for the first time, so confirm with the password
+// instead, and finish by showing the new backup codes.
+function AddAuthenticatorDialog({ open, onClose, enabling = false, email }) {
   const [, stepUpState] = useMfaStepUpMutation({ fixedCacheKey: STEP_UP_CACHE_KEY })
   const [startAddFactor, startState] = useStartAddFactorMutation()
   const [verifyNewFactor, verifyState] = useVerifyNewFactorMutation()
@@ -33,6 +38,8 @@ function AddAuthenticatorDialog({ open, onClose }) {
   const [setup, setSetup] = useState(null)
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
+  const [recoveryCodes, setRecoveryCodes] = useState(null)
+  const [saved, setSaved] = useState(false)
 
   const goTo = (next) => {
     setStep(next)
@@ -70,7 +77,12 @@ function AddAuthenticatorDialog({ open, onClose }) {
     if (busy) return
     if (newCode.length !== OTP_LENGTH) return setError('Enter the 6-digit code shown in your new authenticator app')
     try {
-      await verifyNewFactor({ factorId: setup.factorId, code: newCode }).unwrap()
+      const { data } = await verifyNewFactor({ factorId: setup.factorId, code: newCode }).unwrap()
+      if (data.recoveryCodes?.length) {
+        setRecoveryCodes(data.recoveryCodes)
+        goTo('codes')
+        return
+      }
       toast.success('Authenticator added', { description: `"${label.trim()}" can now be used to sign in.` })
       onClose()
     } catch (err) {
@@ -102,21 +114,39 @@ function AddAuthenticatorDialog({ open, onClose }) {
     code: (
       <>
         <Button variant="secondary" onClick={() => goTo('scan')}>Back</Button>
-        <Button onClick={() => verifyFactor()} loading={verifyState.isLoading}>{verifyState.isLoading ? 'Verifying…' : 'Verify and add'}</Button>
+        <Button onClick={() => verifyFactor()} loading={verifyState.isLoading}>
+          {verifyState.isLoading ? 'Verifying…' : enabling ? 'Verify and turn on' : 'Verify and add'}
+        </Button>
       </>
     ),
+    codes: (
+      <Button
+        disabled={!saved}
+        onClick={() => {
+          toast.success('Two-step verification is on', { description: 'You\'ll enter a code from your app each time you sign in.' })
+          onClose()
+        }}
+      >
+        Done
+      </Button>
+    ),
   }[step]
+
+  const totalSteps = recoveryCodes || enabling ? 5 : 4
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      dismissible={!busy}
-      title={STEPS[step].title}
-      description={`Add authenticator · Step ${STEPS[step].n} of 4`}
+      // Once backup codes are on screen, only "Done" closes it so they aren't lost by accident
+      dismissible={!busy && step !== 'codes'}
+      title={step === 'confirm' && enabling ? 'Confirm your password' : STEPS[step].title}
+      description={`${enabling ? 'Turn on two-step verification' : 'Add authenticator'} · Step ${STEPS[step].n} of ${totalSteps}`}
       footer={footer}
     >
-      {step === 'confirm' && (
+      {step === 'confirm' && (enabling ? (
+        <ConfirmPasswordStep key={notice} formId={CONFIRM_FORM_ID} notice={notice} onConfirmed={() => goTo('name')} onClose={onClose} />
+      ) : (
         <ConfirmIdentityStep
           key={notice}
           formId={CONFIRM_FORM_ID}
@@ -124,6 +154,16 @@ function AddAuthenticatorDialog({ open, onClose }) {
           onConfirmed={() => goTo('name')}
           onClose={onClose}
         />
+      ))}
+
+      {step === 'codes' && recoveryCodes && (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm leading-normal text-body">
+            If you ever lose your phone, sign in with one of these codes instead. Each code works once.
+          </p>
+          <BackupCodesPanel codes={recoveryCodes} email={email} />
+          <SavedCodesCheckbox checked={saved} onChange={setSaved} />
+        </div>
       )}
 
       {step === 'name' && (
@@ -147,7 +187,9 @@ function AddAuthenticatorDialog({ open, onClose }) {
       {step === 'scan' && setup && (
         <div className="flex flex-col gap-4">
           <p className="text-sm leading-normal text-body">
-            Open the authenticator app on your new device and scan this code.
+            {enabling
+              ? 'Scan this code with Google Authenticator, Microsoft Authenticator or any authenticator app.'
+              : 'Open the authenticator app on your new device and scan this code.'}
           </p>
           <AuthenticatorQr otpauthUrl={setup.otpauthUrl} secret={setup.secret} />
         </div>
@@ -156,7 +198,7 @@ function AddAuthenticatorDialog({ open, onClose }) {
       {step === 'code' && (
         <form onSubmit={(e) => { e.preventDefault(); verifyFactor() }} noValidate className="flex flex-col gap-4">
           <p className="text-sm leading-normal text-body">
-            Enter the 6-digit code your <strong className="font-semibold">new</strong> app shows for {setup?.issuer}.
+            Enter the 6-digit code your {enabling ? 'authenticator' : <strong className="font-semibold">new</strong>} app shows for {setup?.issuer}.
           </p>
           <div className="flex flex-col gap-2">
             <OtpInput

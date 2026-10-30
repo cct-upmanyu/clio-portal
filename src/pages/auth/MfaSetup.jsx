@@ -6,7 +6,7 @@ import BackupCodesPanel, { SavedCodesCheckbox } from '../../components/auth/Back
 import OtpInput, { OTP_LENGTH } from '../../components/auth/OtpInput'
 import Spinner from '../../components/ui/Spinner'
 import { CheckIcon, ChevronLeftIcon, KeyIcon, ShieldIcon } from '../../components/ui/icons'
-import { linkClass, primaryButtonClass } from '../../components/auth/styles'
+import { inputClass, inputErrorClass, labelClass, linkClass, primaryButtonClass } from '../../components/auth/styles'
 import { useConfirmMfaSetupMutation, useGetMfaStatusQuery, useStartMfaSetupMutation } from '../../redux/api/authApi'
 import { MFA_NAVIGATING_CODES, useFinishSignIn, useMfaErrorHandler } from '../../hooks/useSignInFlow'
 
@@ -49,6 +49,14 @@ function MfaSetup() {
   const [attempt, setAttempt] = useState(0)
   const [signedIn, setSignedIn] = useState(null)
   const [step, setStep] = useState('scan')
+  const [label, setLabel] = useState('')
+  const [labelError, setLabelError] = useState('')
+
+  const continueToCode = (e) => {
+    e.preventDefault()
+    if (!label.trim()) return setLabelError('Give this device a name, like "iPhone"')
+    setStep('verify')
+  }
 
   const backToScan = () => {
     setStep('scan')
@@ -77,7 +85,7 @@ function MfaSetup() {
     if (confirming) return
     setError('')
     try {
-      const { data } = await confirmSetup({ code: value }).unwrap()
+      const { data } = await confirmSetup({ code: value, label: label.trim() }).unwrap()
       if (data.recoveryCodes?.length) setSignedIn(data)
       else finishSignIn(data)
     } catch (err) {
@@ -120,9 +128,27 @@ function MfaSetup() {
 
         <AuthenticatorQr otpauthUrl={setup.otpauthUrl} secret={setup.secret} />
 
-        <button type="button" onClick={() => setStep('verify')} className={primaryButtonClass}>
-          I've scanned the code
-        </button>
+        <form onSubmit={continueToCode} noValidate className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="device-name" className={labelClass}>Device name</label>
+            <input
+              id="device-name"
+              value={label}
+              onChange={(e) => { setLabel(e.target.value); setLabelError('') }}
+              maxLength={100}
+              placeholder="e.g. iPhone"
+              aria-invalid={Boolean(labelError) || undefined}
+              aria-describedby={labelError ? 'device-name-error' : 'device-name-hint'}
+              className={labelError ? inputErrorClass : inputClass}
+            />
+            {labelError
+              ? <span id="device-name-error" role="alert" className="text-[13px] text-danger">{labelError}</span>
+              : <span id="device-name-hint" className="text-xs text-muted">Helps you recognise this authenticator later in your settings.</span>}
+          </div>
+          <button type="submit" className={primaryButtonClass}>
+            I've scanned the code
+          </button>
+        </form>
       </AuthLayout>
     )
   }
