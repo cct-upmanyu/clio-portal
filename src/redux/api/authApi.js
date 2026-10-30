@@ -31,6 +31,22 @@ export const authApi = baseApi.injectEndpoints({
     verifyMfa: builder.mutation({
       query: (body) => ({ url: "/auth/mfa/verify", method: "POST", body }),
     }),
+    // Signed in: manage authenticators. Adding one needs a fresh identity check (mfaStepUp) first.
+    getMfaFactors: builder.query({ query: () => "/auth/mfa/factors", providesTags: ["MfaFactors"] }),
+    mfaStepUp: builder.mutation({
+      query: (body) => ({ url: "/auth/mfa/step-up", method: "POST", body }),
+    }),
+    startAddFactor: builder.mutation({
+      query: (body) => ({ url: "/auth/mfa/factors", method: "POST", body }),
+    }),
+    verifyNewFactor: builder.mutation({
+      query: ({ factorId, code }) => ({ url: `/auth/mfa/factors/${factorId}/verify`, method: "POST", body: { code } }),
+      invalidatesTags: ["MfaFactors"],
+    }),
+    regenerateRecoveryCodes: builder.mutation({
+      query: () => ({ url: "/auth/mfa/recovery-codes", method: "POST" }),
+      invalidatesTags: ["MfaFactors"],
+    }),
     // Callers dispatch clearAuth() afterwards, even if this fails (see SignOutDialog)
     logout: builder.mutation({
       query: () => ({ url: "/auth/logout", method: "POST" }),
@@ -46,4 +62,9 @@ export const {
   useStartMfaSetupMutation,
   useConfirmMfaSetupMutation,
   useVerifyMfaMutation,
+  useGetMfaFactorsQuery,
+  useMfaStepUpMutation,
+  useStartAddFactorMutation,
+  useVerifyNewFactorMutation,
+  useRegenerateRecoveryCodesMutation,
 } = authApi;

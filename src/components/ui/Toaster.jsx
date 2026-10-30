@@ -1,4 +1,5 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { toast, toastStore } from '../../utils/toast'
 import { AlertIcon, CheckCircleIcon, CloseIcon, InfoIcon, WarningIcon } from './icons'
 
@@ -76,16 +77,35 @@ function ToastItem({ item }) {
   )
 }
 
+const topmostModal = () => [...document.querySelectorAll('dialog[open]')].filter((d) => d.matches(':modal')).at(-1) || document.body
+
+// An open modal <dialog> sits above every z-index and makes the rest of the page inert, so toasts
+// are rendered inside it while it's open (still position: fixed to the viewport, and clickable)
+function useTopmostModal() {
+  const [container, setContainer] = useState(() => topmostModal())
+
+  useEffect(() => {
+    // childList too: a dialog unmounted while still open never loses its `open` attribute
+    const observer = new MutationObserver(() => setContainer(topmostModal()))
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return container
+}
+
 function Toaster() {
   const toasts = useSyncExternalStore(toastStore.subscribe, toastStore.getSnapshot)
+  const container = useTopmostModal()
 
-  return (
+  return createPortal(
     <section
       aria-label="Notifications"
       className="pointer-events-none fixed left-1/2 top-4 z-[100] flex w-[min(360px,calc(100vw-32px))] -translate-x-1/2 flex-col gap-2 max-sm:top-3"
     >
       {toasts.map((item) => <ToastItem key={item.id} item={item} />)}
-    </section>
+    </section>,
+    container,
   )
 }
 

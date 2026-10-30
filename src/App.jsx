@@ -8,6 +8,8 @@ import Tasks from './pages/Tasks.jsx'
 import Documents from './pages/Documents.jsx'
 import Events from './pages/Events.jsx'
 import Bills from './pages/Bills.jsx'
+import Settings from './pages/settings/Settings.jsx'
+import SecuritySettings from './pages/settings/SecuritySettings.jsx'
 import Login from './pages/auth/Login.jsx'
 import MfaSetup from './pages/auth/MfaSetup.jsx'
 import MfaVerify from './pages/auth/MfaVerify.jsx'
@@ -27,6 +29,10 @@ function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/events" element={<Events />} />
           <Route path="/bills" element={<Bills />} />
+          <Route path="/settings" element={<Settings />}>
+            <Route index element={<Navigate to="security" replace />} />
+            <Route path="security" element={<SecuritySettings />} />
+          </Route>
         </Route>
 
         <Route element={<GuestOnly />}>

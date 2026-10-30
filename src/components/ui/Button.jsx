@@ -7,11 +7,16 @@ const variants = {
   danger: 'bg-danger text-white hover:bg-[#912018]',
 }
 
+const sizes = {
+  md: 'h-10 px-4 text-sm',
+  sm: 'h-9 px-3 text-[13px]',
+}
+
 // Renders a router Link when `to` is given, otherwise a button
-function Button({ to, variant = 'primary', icon: Icon, loading = false, className = '', children, ...props }) {
+function Button({ to, variant = 'primary', size = 'md', icon: Icon, loading = false, className = '', children, ...props }) {
   const classes =
-    `inline-flex h-10 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 ` +
-    `text-sm font-semibold disabled:cursor-not-allowed ${loading ? 'disabled:cursor-wait' : 'disabled:opacity-50'} ${variants[variant]} ${className}`
+    `inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg ${sizes[size]} ` +
+    `font-semibold disabled:cursor-not-allowed ${loading ? 'disabled:cursor-wait' : 'disabled:opacity-50'} ${variants[variant]} ${className}`
 
   const content = (
     <>

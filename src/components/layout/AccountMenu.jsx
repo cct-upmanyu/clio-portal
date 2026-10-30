@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Avatar from '../ui/Avatar'
 import { ChevronDownIcon, HelpIcon, SettingsIcon, SignOutIcon } from '../ui/icons'
 import { firm } from '../../data/sampleData'
@@ -51,11 +52,10 @@ function AccountMenu({ user }) {
           </div>
 
           <div className="mx-1 mb-2 h-px bg-divider" />
-          {/* TODO: account settings page */}
-          <button type="button" role="menuitem" onClick={close} className={menuItemClass}>
+          <Link to="/settings" role="menuitem" onClick={close} className={menuItemClass}>
             <SettingsIcon className="size-[18px]" />
             Account settings
-          </button>
+          </Link>
           <a role="menuitem" href={`mailto:${firm.email}`} className={menuItemClass}>
             <HelpIcon className="size-[18px]" />
             Help &amp; contact

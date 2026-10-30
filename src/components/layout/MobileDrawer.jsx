@@ -71,11 +71,10 @@ function MobileDrawer({ open, onClose, user }) {
                 <span className="truncate text-xs text-nav-muted">{user.email}</span>
               </span>
             </div>
-            {/* TODO: account settings page */}
-            <button type="button" onClick={onClose} className={`${navItemClass} ${navItemIdleClass} cursor-pointer`}>
+            <Link to="/settings" onClick={onClose} className={`${navItemClass} ${navItemIdleClass}`}>
               <SettingsIcon className="size-[18px] shrink-0" />
               Account settings
-            </button>
+            </Link>
             <a href={`mailto:${firm.email}`} className={`${navItemClass} ${navItemIdleClass}`}>
               <HelpIcon className="size-[18px] shrink-0" />
               Help &amp; contact

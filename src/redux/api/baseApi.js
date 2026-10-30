@@ -51,5 +51,6 @@ const baseQuery = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery,
+  tagTypes: ["MfaFactors"],
   endpoints: () => ({}),
 });
