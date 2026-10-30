@@ -55,8 +55,15 @@ function RemoveAuthenticatorDialog({ factor, otherFactors, onClose }) {
     >
       <form id={FORM_ID} onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="flex flex-col gap-4">
         <p className="text-sm leading-normal text-body">
-          To confirm, enter the current code from <strong className="font-semibold text-ink">{others}</strong>.
-          This makes sure the authenticator you keep is working.
+          {otherFactors.length > 1 ? (
+            <>
+              To confirm, enter the current code from <strong className="font-semibold text-ink">any one</strong> of your
+              other authenticators: <strong className="font-semibold text-ink">{others}</strong>.
+            </>
+          ) : (
+            <>To confirm, enter the current code from <strong className="font-semibold text-ink">{others}</strong>.</>
+          )}
+          {' '}A code from &ldquo;{name}&rdquo; itself won't work, so you know the authenticator you keep is working.
         </p>
         <div className="flex flex-col gap-2">
           <OtpInput
