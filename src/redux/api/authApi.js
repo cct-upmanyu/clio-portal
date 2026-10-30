@@ -36,6 +36,8 @@ export const authApi = baseApi.injectEndpoints({
     getMfaFactors: builder.query({ query: () => "/auth/mfa/factors", providesTags: ["MfaFactors"] }),
     mfaStepUp: builder.mutation({
       query: (body) => ({ url: "/auth/mfa/step-up", method: "POST", body }),
+      // A backup code is used up: refresh the "codes left" count on the Security page
+      invalidatesTags: (result, error, body) => (!error && body?.recoveryCode ? ["MfaFactors"] : []),
     }),
     startAddFactor: builder.mutation({
       query: (body) => ({ url: "/auth/mfa/factors", method: "POST", body }),
