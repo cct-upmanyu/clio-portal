@@ -5,10 +5,11 @@ import AccountMenu from './AccountMenu'
 import MatterSwitcher from './MatterSwitcher'
 import MobileDrawer from './MobileDrawer'
 import { BriefcaseIcon, MenuIcon } from '../ui/icons'
-import { currentUser } from '../../data/sampleData'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 
 // Brand blue over the navy Sidebar: the bar stands out as the page header (Clio-style)
 function TopBar() {
+  const currentUser = useCurrentUser()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 

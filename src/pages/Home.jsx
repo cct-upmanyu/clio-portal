@@ -9,7 +9,7 @@ import SectionHeader from '../components/ui/SectionHeader'
 import MatterSummaryCard from '../components/home/MatterSummaryCard'
 import LegalTeamCard from '../components/home/LegalTeamCard'
 import { CalendarIcon, DocumentsIcon, InboxIcon, MessageIcon } from '../components/ui/icons'
-import { currentUser } from '../data/sampleData'
+import { useCurrentUser } from '../hooks/useCurrentUser'
 import { useMatters } from '../hooks/useMatters'
 import { greeting } from '../utils/greeting'
 import { formatDate, formatShort } from '../utils/dates'
@@ -18,7 +18,7 @@ import { sortTasks, taskStatus } from '../utils/tasks'
 
 function Home() {
   const { selectedMatter: matter } = useMatters()
-  const firstName = currentUser.name.split(' ')[0]
+  const { firstName } = useCurrentUser()
   const byNewest = (key) => (a, b) => new Date(b[key]) - new Date(a[key])
   const recentDocuments = [...matter.documents].sort(byNewest('sharedAt')).slice(0, 3)
   const recentMessages = matter.messages.filter((m) => !m.fromMe).sort(byNewest('sentAt')).slice(0, 3)
@@ -27,7 +27,7 @@ function Home() {
   return (
     <Page>
       <PageHeader
-        title={`${greeting()}, ${firstName}`}
+        title={firstName ? `${greeting()}, ${firstName}` : greeting()}
         description={`Here's the latest on ${matter.title.toLowerCase()} (${matter.number}).`}
         action={<Button to="/messages" icon={MessageIcon}>Message your attorney</Button>}
       />

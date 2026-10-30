@@ -1,6 +1,12 @@
+import { useEffect } from 'react'
 import BrandLogo from '../ui/BrandLogo'
+import { hideBootSplash } from '../../utils/bootSplash'
 
 function AuthLayout({ children, footer }) {
+  useEffect(() => {
+    hideBootSplash()
+  }, [])
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-canvas px-4 py-10 text-ink max-sm:gap-4 max-sm:py-5">
       <BrandLogo lightClass="h-16 rounded-md max-sm:h-12" darkClass="size-24 max-sm:size-20" />

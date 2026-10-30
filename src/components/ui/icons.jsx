@@ -138,6 +138,26 @@ export const AlertIcon = (props) => (
   <svg {...base} {...props}><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 8v5M12 16.5v.01" /></svg>
 )
 
+export const WarningIcon = (props) => (
+  <svg {...base} {...props}><path d="M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0zM12 9.5v4M12 17v.01" /></svg>
+)
+
+export const InfoIcon = (props) => (
+  <svg {...base} {...props}><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 7.5v.01" /></svg>
+)
+
+export const ShieldIcon = (props) => (
+  <svg {...base} {...props}><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3z" /><path d="m9 12 2 2 4-4" /></svg>
+)
+
+export const CopyIcon = (props) => (
+  <svg {...base} {...props}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></svg>
+)
+
+export const KeyIcon = (props) => (
+  <svg {...base} {...props}><circle cx="8" cy="15" r="4" /><path d="m10.8 12.2 8.7-8.7M17 6l2.5 2.5M14.5 8.5 17 11" /></svg>
+)
+
 export const PlusIcon = (props) => (
   <svg {...base} strokeWidth={2} {...props}><path d="M12 5v14M5 12h14" /></svg>
 )

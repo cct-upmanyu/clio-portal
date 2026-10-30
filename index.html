@@ -45,9 +45,120 @@
         --color-nav-muted: #9FB0C8;
       }
     </style>
+    <!-- Boot splash: plain CSS (not Tailwind) so it paints before the app and Tailwind are ready.
+         Removed by hideBootSplash() in src/utils/bootSplash.js once the app has rendered. -->
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: radial-gradient(ellipse at top, #FFFFFF 0%, #F3F5F8 70%);
+        color: #10213A;
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        transition: opacity 400ms ease, visibility 400ms ease;
+      }
+      #boot-splash.is-hidden { opacity: 0; visibility: hidden; }
+      #boot-splash .bs-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+        width: min(360px, 100%);
+        animation: bs-rise 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      #boot-splash .bs-logo {
+        display: flex;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: #FFFFFF;
+        border: 1px solid #DDE2EA;
+        box-shadow: 0 1px 2px rgba(10, 31, 61, 0.06), 0 12px 32px rgba(10, 31, 61, 0.08);
+      }
+      #boot-splash .bs-logo img { display: block; height: 64px; width: auto; }
+      #boot-splash .bs-text { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+      #boot-splash .bs-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+      #boot-splash .bs-sub { margin: 0; font-size: 13px; color: #5B6778; }
+      #boot-splash .bs-track {
+        position: relative;
+        width: 200px;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #DCE6F2;
+      }
+      #boot-splash .bs-bar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #0B5CAD, #3D86D1);
+        animation: bs-slide 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      /* Second, shorter bar trailing the first (Material-style indeterminate progress) */
+      #boot-splash .bs-bar + .bs-bar {
+        background: #3D86D1;
+        animation: bs-slide-short 1.3s cubic-bezier(0.165, 0.84, 0.44, 1) 0.65s infinite;
+        left: -100%;
+      }
+      #boot-splash .bs-foot {
+        position: absolute;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #5B6778;
+      }
+      #boot-splash .bs-foot svg { width: 14px; height: 14px; color: #1B7F4B; }
+      /* The bar grows while it travels, so the movement reads clearly even at a glance */
+      @keyframes bs-slide {
+        0% { left: -35%; right: 100%; }
+        60% { left: 100%; right: -90%; }
+        100% { left: 100%; right: -90%; }
+      }
+      @keyframes bs-slide-short {
+        0% { left: -200%; right: 100%; }
+        60% { left: 107%; right: -8%; }
+        100% { left: 107%; right: -8%; }
+      }
+      @keyframes bs-rise {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash .bs-card { animation: none; }
+        /* Reduced motion: one slower, steady sweep instead of the double bar (still clearly "loading") */
+        #boot-splash .bs-bar { animation-duration: 2s; animation-timing-function: ease-in-out; }
+        #boot-splash .bs-bar + .bs-bar { display: none; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-splash" role="status" aria-live="polite">
+      <div class="bs-card">
+        <div class="bs-logo">
+          <img src="/brand/firm-logo.webp" alt="David Smith Law Firm" width="89" height="64" />
+        </div>
+        <div class="bs-text">
+          <p class="bs-title">Setting up your portal</p>
+          <p class="bs-sub">Securely loading your matters and documents…</p>
+        </div>
+        <div class="bs-track" aria-hidden="true"><div class="bs-bar"></div><div class="bs-bar"></div></div>
+      </div>
+      <div class="bs-foot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="11" width="16" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+        Encrypted connection
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

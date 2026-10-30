@@ -7,3 +7,43 @@
     box-sizing: border-box;
   }
 }
+
+/* Toasts (components/ui/Toaster.jsx): drop in from the top, lift out on dismiss */
+.toast-enter {
+  animation: toast-in 380ms cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
+
+.toast-leave {
+  animation: toast-out 200ms ease-in both;
+}
+
+.toast-progress {
+  animation-name: toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-120%) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes toast-out {
+  to { opacity: 0; transform: translateY(-40%) scale(0.96); }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes toast-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes toast-out {
+    to { opacity: 0; }
+  }
+}

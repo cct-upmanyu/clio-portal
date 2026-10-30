@@ -1,8 +1,14 @@
 export const labelClass = 'text-sm font-medium text-ink'
 
+const inputBaseClass =
+  'h-11 w-full rounded-lg border bg-white px-3 text-[15px] text-ink placeholder:text-muted focus:outline-none'
+
 export const inputClass =
-  'h-11 w-full rounded-lg border border-field bg-white px-3 text-[15px] text-ink placeholder:text-muted ' +
-  'focus:border-brand focus:outline-2 focus:outline-offset-1 focus:outline-brand'
+  `${inputBaseClass} border-field focus:border-brand focus:shadow-[0_0_0_3px_rgba(11,92,173,0.15)]`
+
+// Use instead of inputClass (not with it) so the two never fight over the same properties
+export const inputErrorClass =
+  `${inputBaseClass} border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgba(180,35,24,0.12)]`
 
 export const primaryButtonClass =
   'flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand text-[15px] font-semibold text-white ' +

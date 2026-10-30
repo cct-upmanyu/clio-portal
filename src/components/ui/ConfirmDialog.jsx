@@ -3,10 +3,16 @@ import Button from './Button'
 import { useModalDialog } from '../../hooks/useModalDialog'
 
 // Modal "are you sure?" built on the native <dialog>: focus is trapped inside,
-// Escape and a click on the backdrop cancel.
-function ConfirmDialog({ open, icon: Icon, title, children, confirmLabel, cancelLabel = 'Cancel', tone = 'danger', onConfirm, onCancel }) {
+// Escape and a click on the backdrop cancel (except while `loading`).
+function ConfirmDialog({
+  open, icon: Icon, title, children, confirmLabel, cancelLabel = 'Cancel', tone = 'danger',
+  loading = false, loadingLabel, onConfirm, onCancel,
+}) {
   const dialogRef = useModalDialog(open)
   const titleId = useId()
+  const cancel = () => {
+    if (!loading) onCancel()
+  }
 
   const iconTone = tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-brand-soft text-brand'
 
@@ -16,10 +22,10 @@ function ConfirmDialog({ open, icon: Icon, title, children, confirmLabel, cancel
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault()
-        onCancel()
+        cancel()
       }}
       onClick={(e) => {
-        if (e.target === dialogRef.current) onCancel()
+        if (e.target === dialogRef.current) cancel()
       }}
       className="m-auto w-[min(400px,calc(100vw-32px))] rounded-xl border border-line bg-white p-0 text-ink shadow-[0_24px_60px_rgba(10,31,61,0.24)] backdrop:bg-navy/50"
     >
@@ -36,8 +42,10 @@ function ConfirmDialog({ open, icon: Icon, title, children, confirmLabel, cancel
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>
-          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button>
+          <Button variant="secondary" onClick={cancel} disabled={loading}>{cancelLabel}</Button>
+          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
+            {loading && loadingLabel ? loadingLabel : confirmLabel}
+          </Button>
         </div>
       </div>
     </dialog>

@@ -1,52 +1,112 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import PasswordInput from '../../components/auth/PasswordInput'
 import { MailIcon } from '../../components/ui/icons'
-import { inputClass, labelClass, linkClass, primaryButtonClass, secondaryButtonClass } from '../../components/auth/styles'
+import { inputClass, inputErrorClass, labelClass, linkClass, primaryButtonClass, secondaryButtonClass } from '../../components/auth/styles'
+import { useLoginMutation } from '../../redux/api/authApi'
+import { baseApi, isHandledGlobally } from '../../redux/api/baseApi'
+import { toast } from '../../utils/toast'
+import { useFinishSignIn } from '../../hooks/useSignInFlow'
+import { validateEmail, validateLoginPassword } from '../../utils/validation'
+
+const validate = { email: validateEmail, password: validateLoginPassword }
 
 function Login() {
   const navigate = useNavigate()
+  const finishSignIn = useFinishSignIn()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const sessionExpired = useSelector((state) => state.auth.signOutReason === 'expired')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState({ email: '', password: '' })
+  const [touched, setTouched] = useState({ email: false, password: false })
+  const emailRef = useRef(null)
+  const passwordRef = useRef(null)
+  const [login, { isLoading }] = useLoginMutation()
 
-  const handleSubmit = (e) => {
+  // Drop anything cached for the previous user
+  useEffect(() => {
+    dispatch(baseApi.util.resetApiState())
+  }, [dispatch])
+
+  useEffect(() => {
+    if (sessionExpired) toast.warning('Your session has ended', { description: 'Please sign in again to continue.' })
+  }, [sessionExpired])
+
+  // Errors appear once a field has been left (or on submit), then update as the user types
+  const handleChange = (field, setValue) => (value) => {
+    setValue(value)
+    if (touched[field]) setErrors((prev) => ({ ...prev, [field]: validate[field](value) }))
+  }
+
+  const handleBlur = (field, value) => () => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+    setErrors((prev) => ({ ...prev, [field]: validate[field](value) }))
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: POST /auth/login { email, password }, then go to the dashboard
-    navigate('/')
+    const nextErrors = { email: validateEmail(email), password: validateLoginPassword(password) }
+    setErrors(nextErrors)
+    setTouched({ email: true, password: true })
+    if (nextErrors.email) return emailRef.current?.focus()
+    if (nextErrors.password) return passwordRef.current?.focus()
+
+    try {
+      const { data } = await login({ email: email.trim(), password }).unwrap()
+      if (data?.mfaRequired) {
+        navigate(data.mfaSetupRequired ? '/login/mfa/setup' : '/login/mfa', { state: { from: location.state?.from } })
+        return
+      }
+      finishSignIn(data)
+    } catch (err) {
+      if (!isHandledGlobally(err)) {
+        toast.error('Sign-in failed', { description: err?.data?.message || 'Please try again.' })
+      }
+    }
   }
 
   return (
     <AuthLayout footer="New client? You'll receive an email invitation from your attorney's office.">
       <AuthHeading title="Sign in">Access your matters, documents and messages.</AuthHeading>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="email" className={labelClass}>Email</label>
           <input
+            ref={emailRef}
             id="email"
             type="email"
-            required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleChange('email', setEmail)(e.target.value)}
+            onBlur={handleBlur('email', email)}
             autoComplete="email"
             placeholder="you@example.com"
-            className={inputClass}
+            aria-invalid={Boolean(errors.email) || undefined}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            className={errors.email ? inputErrorClass : inputClass}
           />
+          {errors.email && <span id="email-error" className="text-[13px] text-danger">{errors.email}</span>}
         </div>
 
         <PasswordInput
+          ref={passwordRef}
           id="password"
           label="Password"
           value={password}
-          onChange={setPassword}
+          onChange={handleChange('password', setPassword)}
+          onBlur={handleBlur('password', password)}
+          error={errors.password}
           autoComplete="current-password"
           placeholder="Enter your password"
           labelAside={<Link to="/login/code" className={linkClass}>Forgot password?</Link>}
         />
 
-        <button type="submit" disabled={!email || !password} className={`${primaryButtonClass} mt-1`}>
-          Sign in
+        <button type="submit" disabled={isLoading} className={`${primaryButtonClass} mt-1`}>
+          {isLoading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 

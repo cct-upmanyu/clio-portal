@@ -4,13 +4,7 @@ import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import PasswordInput from '../../components/auth/PasswordInput'
 import { CheckIcon, CircleIcon } from '../../components/ui/icons'
 import { primaryButtonClass } from '../../components/auth/styles'
-
-const PASSWORD_RULES = [
-  { text: '12+ characters', test: (p) => p.length >= 12 },
-  { text: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { text: 'One number', test: (p) => /\d/.test(p) },
-  { text: 'One symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
-]
+import { PASSWORD_RULES } from '../../utils/validation'
 
 function SetPassword() {
   const navigate = useNavigate()
