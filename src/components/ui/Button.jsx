@@ -5,6 +5,7 @@ const variants = {
   primary: 'bg-brand text-white hover:bg-brand-dark',
   secondary: 'border border-field bg-white text-ink hover:bg-subtle',
   danger: 'bg-danger text-white hover:bg-[#912018]',
+  dangerOutline: 'border border-danger/30 bg-white text-danger hover:bg-danger-soft',
 }
 
 const sizes = {

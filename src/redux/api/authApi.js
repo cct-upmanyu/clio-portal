@@ -44,6 +44,11 @@ export const authApi = baseApi.injectEndpoints({
       query: ({ factorId, code }) => ({ url: `/auth/mfa/factors/${factorId}/verify`, method: "POST", body: { code } }),
       invalidatesTags: ["MfaFactors"],
     }),
+    // `code` must come from one of the user's other authenticators
+    removeFactor: builder.mutation({
+      query: ({ factorId, code }) => ({ url: `/auth/mfa/factors/${factorId}/remove`, method: "POST", body: { code } }),
+      invalidatesTags: ["MfaFactors"],
+    }),
     regenerateRecoveryCodes: builder.mutation({
       query: () => ({ url: "/auth/mfa/recovery-codes", method: "POST" }),
       invalidatesTags: ["MfaFactors"],
@@ -68,4 +73,5 @@ export const {
   useStartAddFactorMutation,
   useVerifyNewFactorMutation,
   useRegenerateRecoveryCodesMutation,
+  useRemoveFactorMutation,
 } = authApi;

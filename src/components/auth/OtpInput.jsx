@@ -83,6 +83,7 @@ function OtpInput({ onChange, onComplete, label = 'Verification code', autoFocus
             inputMode="numeric"
             autoComplete={i === 0 ? 'one-time-code' : 'off'}
             aria-label={`Digit ${i + 1} of ${OTP_LENGTH}`}
+            data-autofocus={autoFocus && i === 0 ? '' : undefined}
             aria-invalid={invalid || undefined}
             disabled={disabled}
             className={`${boxClass} ${invalid ? errorClass : normalClass}`}

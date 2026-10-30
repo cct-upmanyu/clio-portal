@@ -31,7 +31,7 @@ export function useStepUpFailureHandler(onClose) {
       dispatch(clearAuth())
       return true
     }
-    if (['STEP_UP_RATE_LIMITED', 'MFA_FACTOR_LIMIT', 'MFA_NOT_SET_UP', 'PASSWORD_NOT_SET'].includes(code)) {
+    if (['STEP_UP_RATE_LIMITED', 'MFA_FACTOR_LIMIT', 'MFA_NOT_SET_UP', 'PASSWORD_NOT_SET', 'MFA_LAST_FACTOR', 'MFA_FACTOR_NOT_FOUND'].includes(code)) {
       toast.error('Could not continue', { description: message })
       onClose()
       return true

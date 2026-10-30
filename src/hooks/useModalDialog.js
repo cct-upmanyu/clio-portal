@@ -7,7 +7,12 @@ export function useModalDialog(open) {
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      // showModal() focuses the first focusable element (often the close button); prefer the
+      // field marked data-autofocus, since React's autoFocus already ran before the dialog opened
+      dialog.querySelector('[data-autofocus]')?.focus()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 

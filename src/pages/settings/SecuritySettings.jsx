@@ -5,6 +5,7 @@ import Spinner from '../../components/ui/Spinner'
 import { InfoIcon, KeyIcon, PlusIcon, RefreshIcon, ShieldIcon } from '../../components/ui/icons'
 import AddAuthenticatorDialog from '../../components/settings/AddAuthenticatorDialog'
 import RegenerateBackupCodesDialog from '../../components/settings/RegenerateBackupCodesDialog'
+import RemoveAuthenticatorDialog from '../../components/settings/RemoveAuthenticatorDialog'
 import { useGetMfaFactorsQuery } from '../../redux/api/authApi'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { formatDate, formatShort } from '../../utils/dates'
@@ -27,8 +28,12 @@ function SecuritySettings() {
   const [dialog, setDialog] = useState(null)
   const [dialogKey, setDialogKey] = useState(0)
 
+  const [removing, setRemoving] = useState(null)
+
   const mfa = data?.data
   const atLimit = mfa && mfa.factors.length >= mfa.maxFactors
+  // At least one authenticator must stay while two-step verification is on
+  const canRemove = mfa && mfa.factors.length > 1
 
   const openDialog = (name) => {
     setDialogKey((k) => k + 1)
@@ -75,19 +80,33 @@ function SecuritySettings() {
                     <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
                       <ShieldIcon className="size-[18px]" />
                     </span>
-                    <span className="flex min-w-0 flex-col">
+                    <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-semibold">{factor.label || 'Authenticator app'}</span>
                       <span className="text-xs text-muted">
                         {factor.addedAt ? `Added ${formatDate(factor.addedAt)}` : 'Added'}
                         {factor.lastUsedAt && ` · Last used ${formatShort(factor.lastUsedAt)}`}
                       </span>
                     </span>
+                    {canRemove && (
+                      <Button
+                        variant="dangerOutline"
+                        size="sm"
+                        onClick={() => setRemoving(factor)}
+                        aria-label={`Remove ${factor.label || 'Authenticator app'}`}
+                      >
+                        Remove
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>
-              {atLimit && (
+              {atLimit ? (
                 <p className="text-xs text-muted">
-                  You've reached the limit of {mfa.maxFactors} authenticators. Contact your attorney's office to remove one.
+                  You've reached the limit of {mfa.maxFactors} authenticators. Remove one to add another.
+                </p>
+              ) : !canRemove && (
+                <p className="text-xs text-muted">
+                  You need at least one authenticator. To replace this one, add the new one first, then remove the old one.
                 </p>
               )}
             </div>
@@ -115,6 +134,14 @@ function SecuritySettings() {
         )}
       </Section>
 
+      {removing && (
+        <RemoveAuthenticatorDialog
+          key={removing.id}
+          factor={removing}
+          otherFactors={mfa.factors.filter((f) => f.id !== removing.id)}
+          onClose={() => setRemoving(null)}
+        />
+      )}
       {(dialog === 'add' || dialog === 'enable') && (
         <AddAuthenticatorDialog key={dialogKey} open onClose={closeDialog} enabling={dialog === 'enable'} email={email} />
       )}
