@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import EmailField from '../../components/auth/EmailField'
-import FormAlert from '../../components/auth/FormAlert'
 import ResendCode from '../../components/auth/ResendCode'
 import { formatDuration } from '../../components/auth/useCountdown'
 import Spinner from '../../components/ui/Spinner'
@@ -11,7 +10,7 @@ import { linkClass, primaryButtonClass } from '../../components/auth/styles'
 import { useForgotPasswordMutation } from '../../redux/api/authApi'
 import { isHandledGlobally } from '../../redux/api/baseApi'
 import { maskEmail } from '../../utils/maskEmail'
-import { accountProblem } from '../../utils/accountProblem'
+import { toastAccountProblem } from '../../utils/accountProblem'
 import { toast } from '../../utils/toast'
 import { shouldValidateOnBlur, validateEmail } from '../../utils/validation'
 
@@ -24,7 +23,6 @@ function ForgotPassword() {
   const [email, setEmail] = useState(location.state?.email || '')
   const [error, setError] = useState('')
   const [touched, setTouched] = useState(false)
-  const [alert, setAlert] = useState(null)
   // The reply to the last send: { email, expiresInSeconds, resendAvailableInSeconds }
   const [sent, setSent] = useState(null)
   const sentTo = sent?.email
@@ -33,7 +31,6 @@ function ForgotPassword() {
 
   const handleChange = (value) => {
     setEmail(value)
-    setAlert(null)
     if (touched) setError(validateEmail(value))
   }
 
@@ -44,13 +41,12 @@ function ForgotPassword() {
     setTouched(true)
     if (problem) return emailRef.current?.focus()
 
-    setAlert(null)
     try {
       const { data } = await forgotPassword({ email: email.trim() }).unwrap()
       setSent(data)
     } catch (err) {
-      if (accountProblem(err)) setAlert(accountProblem(err))
-      else if (err?.data?.details?.email) setError(err.data.details.email)
+      if (toastAccountProblem(err)) return
+      if (err?.data?.details?.email) setError(err.data.details.email)
       else failed(err)
     }
   }
@@ -100,8 +96,6 @@ function ForgotPassword() {
       <AuthHeading title="Forgot your password?">
         Enter the email address on your account and we'll send you a link to choose a new one.
       </AuthHeading>
-
-      {alert && <FormAlert {...alert} />}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <EmailField

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import DeadlineNotice from '../../components/auth/DeadlineNotice'
+import AccountDisabledRedirect from '../../components/auth/AccountDisabledRedirect'
 import LinkProblem from '../../components/auth/LinkProblem'
 import NewPasswordFields from '../../components/auth/NewPasswordFields'
 import { useSecondsUntil } from '../../components/auth/useCountdown'
@@ -9,7 +10,6 @@ import Spinner from '../../components/ui/Spinner'
 import { primaryButtonClass } from '../../components/auth/styles'
 import { useResetPasswordMutation, useVerifyResetLinkQuery } from '../../redux/api/authApi'
 import { isHandledGlobally } from '../../redux/api/baseApi'
-import { DISABLED_SIGN_OUT } from '../../utils/accountProblem'
 import { linkProblemReason } from '../../utils/linkProblem'
 import { maskEmail } from '../../utils/maskEmail'
 import { toast } from '../../utils/toast'
@@ -19,7 +19,6 @@ const PROBLEMS = {
   INVALID: { title: 'This link isn’t valid', message: 'The reset link is incomplete or has been replaced by a newer one.' },
   USED: { title: 'This link has already been used', message: 'Each reset link works once. Request a new one if you still need to reset your password.' },
   EXPIRED: { title: 'This link has expired', message: 'For your security, reset links only work for a limited time. Request a new one to continue.' },
-  DISABLED: DISABLED_SIGN_OUT,
 }
 
 function ResetPassword() {
@@ -60,11 +59,13 @@ function ResetPassword() {
     }
   }
 
+  if (problem === 'DISABLED') return <AccountDisabledRedirect />
+
   if (problem) {
     return (
       <LinkProblem
         {...(PROBLEMS[problem] || PROBLEMS.INVALID)}
-        action={problem === 'DISABLED' ? undefined : { to: '/forgot-password', label: 'Request a new link' }}
+        action={{ to: '/forgot-password', label: 'Request a new link' }}
       />
     )
   }

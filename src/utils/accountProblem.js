@@ -1,16 +1,23 @@
+import { toast } from './toast'
+
 const TITLES = {
   ACCOUNT_DISABLED: 'Your access has been disabled',
   ACCOUNT_NOT_ACTIVATED: 'Accept your invitation first',
 }
 
-// Shown on the login page after a session ends because the account was disabled
-export const DISABLED_SIGN_OUT = {
-  title: TITLES.ACCOUNT_DISABLED,
-  message: "Your access to the Client Portal has been disabled. Please contact your attorney's office for help.",
+const DISABLED_MESSAGE = "Your access to the Client Portal has been disabled. Please contact your attorney's office for help."
+// Long enough to read the whole explanation
+const DURATION = 7000
+
+// When the error says the account can't sign in (disabled, invitation not accepted): shows it as a
+// toast and returns true. Otherwise returns false and shows nothing.
+export const toastAccountProblem = (err) => {
+  const title = TITLES[err?.data?.code]
+  if (!title) return false
+  toast.error(title, { description: err.data.message, duration: DURATION })
+  return true
 }
 
-// { title, message } when the error says the account can't sign in (disabled, invitation not accepted), else null
-export const accountProblem = (err) => {
-  const title = TITLES[err?.data?.code]
-  return title ? { title, message: err.data.message } : null
-}
+// For a session that ended because the account was disabled (no server message at hand)
+export const toastAccountDisabled = () =>
+  toast.error(TITLES.ACCOUNT_DISABLED, { description: DISABLED_MESSAGE, duration: DURATION })

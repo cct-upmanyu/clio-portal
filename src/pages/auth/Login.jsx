@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
-import FormAlert from '../../components/auth/FormAlert'
 import PasswordInput from '../../components/auth/PasswordInput'
 import { MailIcon } from '../../components/ui/icons'
 import { inputClass, inputErrorClass, labelClass, linkClass, primaryButtonClass, secondaryButtonClass } from '../../components/auth/styles'
 import { useLoginMutation } from '../../redux/api/authApi'
 import { baseApi, isHandledGlobally } from '../../redux/api/baseApi'
-import { DISABLED_SIGN_OUT, accountProblem } from '../../utils/accountProblem'
+import { toastAccountDisabled, toastAccountProblem } from '../../utils/accountProblem'
 import { toast } from '../../utils/toast'
 import { useContinueSignIn } from '../../hooks/useSignInFlow'
 import { shouldValidateOnBlur, validateEmail, validateLoginPassword } from '../../utils/validation'
@@ -20,10 +19,6 @@ function Login() {
   const location = useLocation()
   const dispatch = useDispatch()
   const signOutReason = useSelector((state) => state.auth.signOutReason)
-  const sessionExpired = signOutReason === 'expired'
-  // undefined until the first submit, so the reason for a sign-out shows only until the user tries again
-  const [submitAlert, setAlert] = useState()
-  const alert = submitAlert === undefined ? (signOutReason === 'disabled' ? DISABLED_SIGN_OUT : null) : submitAlert
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({ email: '', password: '' })
@@ -38,8 +33,9 @@ function Login() {
   }, [dispatch])
 
   useEffect(() => {
-    if (sessionExpired) toast.warning('Your session has ended', { description: 'Please sign in again to continue.' })
-  }, [sessionExpired])
+    if (signOutReason === 'expired') toast.warning('Your session has ended', { description: 'Please sign in again to continue.' })
+    else if (signOutReason === 'disabled') toastAccountDisabled()
+  }, [signOutReason])
 
   // Errors appear once a field has been left (or on submit), then update as the user types
   const handleChange = (field, setValue) => (value) => {
@@ -61,15 +57,11 @@ function Login() {
     if (nextErrors.email) return emailRef.current?.focus()
     if (nextErrors.password) return passwordRef.current?.focus()
 
-    setAlert(null)
     try {
       const { data } = await login({ email: email.trim(), password }).unwrap()
       continueSignIn(data)
     } catch (err) {
-      const problem = accountProblem(err)
-      if (problem) {
-        setAlert(problem)
-      } else if (!isHandledGlobally(err)) {
+      if (!toastAccountProblem(err) && !isHandledGlobally(err)) {
         toast.error('Sign-in failed', { description: err?.data?.message || 'Please try again.' })
       }
     }
@@ -78,8 +70,6 @@ function Login() {
   return (
     <AuthLayout footer="New client? You'll receive an email invitation from your attorney's office.">
       <AuthHeading title="Sign in">Access your matters, documents and messages.</AuthHeading>
-
-      {alert && <FormAlert {...alert} />}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
