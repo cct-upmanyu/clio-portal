@@ -25,7 +25,7 @@ const authSlice = createSlice({
     setAuthCheckFailed(state) {
       state.authCheckFailed = true;
     },
-    // payload: 'expired' to tell the user why they were signed out, otherwise nothing
+    // payload: 'expired' or 'disabled' to tell the user why they were signed out, otherwise nothing
     clearAuth(state, action) {
       state.user = null;
       state.isAuthenticated = false;

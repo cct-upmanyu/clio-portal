@@ -3,7 +3,7 @@ import { env } from "../../config/env";
 import { clearAuth, setAccessDenied } from "../slices/authSlice";
 import { toast } from "../../utils/toast";
 
-const SESSION_ERROR_CODES = ["NOT_SIGNED_IN", "SESSION_EXPIRED", "INVALID_SESSION"];
+const SESSION_ERROR_CODES = ["NOT_SIGNED_IN", "SESSION_EXPIRED", "INVALID_SESSION", "ACCOUNT_DISABLED"];
 const SILENT_ENDPOINTS = ["getMe"];
 
 const isSessionError = (error) => error?.status === 401 && SESSION_ERROR_CODES.includes(error?.data?.code);
@@ -33,7 +33,8 @@ const baseQuery = async (args, api, extraOptions) => {
   if (isSessionError(error)) {
     const wasSignedIn = api.getState().auth.isAuthenticated;
     const expired = !silent && (wasSignedIn || error.data.code !== "NOT_SIGNED_IN");
-    api.dispatch(clearAuth(expired ? "expired" : null));
+    // A disabled account is always explained, even on the quiet startup check
+    api.dispatch(clearAuth(error.data.code === "ACCOUNT_DISABLED" ? "disabled" : expired ? "expired" : null));
   } else if (isForbidden(error)) {
     api.dispatch(setAccessDenied(error.data.message));
   } else if (silent) {

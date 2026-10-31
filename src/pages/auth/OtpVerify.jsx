@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import OtpInput, { OTP_LENGTH } from '../../components/auth/OtpInput'
+import FormAlert from '../../components/auth/FormAlert'
 import ResendCode from '../../components/auth/ResendCode'
 import { formatDuration } from '../../components/auth/useCountdown'
 import Spinner from '../../components/ui/Spinner'
@@ -11,6 +12,7 @@ import { useRequestLoginCodeMutation, useVerifyLoginCodeMutation } from '../../r
 import { isHandledGlobally } from '../../redux/api/baseApi'
 import { emailCodeErrorMessage, useContinueSignIn } from '../../hooks/useSignInFlow'
 import { maskEmail } from '../../utils/maskEmail'
+import { accountProblem } from '../../utils/accountProblem'
 import { toast } from '../../utils/toast'
 
 function OtpVerify() {
@@ -22,6 +24,7 @@ function OtpVerify() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
+  const [alert, setAlert] = useState(null)
 
   // Reached without going through the email step (e.g. page refresh)
   if (!email) return <Navigate to="/login/code" replace />
@@ -34,7 +37,8 @@ function OtpVerify() {
       continueSignIn(data)
     } catch (err) {
       const message = emailCodeErrorMessage(err)
-      if (message) setError(message)
+      if (accountProblem(err)) setAlert(accountProblem(err))
+      else if (message) setError(message)
       else if (!isHandledGlobally(err)) toast.error('Sign-in failed', { description: err?.data?.message || 'Please try again.' })
       setCode('')
       setAttempt((n) => n + 1)
@@ -54,7 +58,8 @@ function OtpVerify() {
       toast.success('New code sent', { description: 'Use the code in the latest email.' })
       return data.resendAvailableInSeconds
     } catch (err) {
-      if (!isHandledGlobally(err)) toast.error("Couldn't send the code", { description: err?.data?.message || 'Please try again.' })
+      if (accountProblem(err)) setAlert(accountProblem(err))
+      else if (!isHandledGlobally(err)) toast.error("Couldn't send the code", { description: err?.data?.message || 'Please try again.' })
       return 0
     }
   }
@@ -73,6 +78,8 @@ function OtpVerify() {
       <AuthHeading title="Check your email">
         If there's an account for <strong className="font-semibold text-ink">{maskEmail(email)}</strong>, we've sent it a 6-digit code.{expiresInSeconds ? ` It expires in ${formatDuration(expiresInSeconds)}.` : ''}
       </AuthHeading>
+
+      {alert && <FormAlert {...alert} />}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">

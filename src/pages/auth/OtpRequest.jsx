@@ -2,11 +2,13 @@ import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import EmailField from '../../components/auth/EmailField'
+import FormAlert from '../../components/auth/FormAlert'
 import Spinner from '../../components/ui/Spinner'
 import { ChevronLeftIcon } from '../../components/ui/icons'
 import { linkClass, primaryButtonClass } from '../../components/auth/styles'
 import { useRequestLoginCodeMutation } from '../../redux/api/authApi'
 import { isHandledGlobally } from '../../redux/api/baseApi'
+import { accountProblem } from '../../utils/accountProblem'
 import { toast } from '../../utils/toast'
 import { shouldValidateOnBlur, validateEmail } from '../../utils/validation'
 
@@ -16,11 +18,13 @@ function OtpRequest() {
   const [email, setEmail] = useState(location.state?.email || '')
   const [error, setError] = useState('')
   const [touched, setTouched] = useState(false)
+  const [alert, setAlert] = useState(null)
   const emailRef = useRef(null)
   const [requestCode, { isLoading }] = useRequestLoginCodeMutation()
 
   const handleChange = (value) => {
     setEmail(value)
+    setAlert(null)
     if (touched) setError(validateEmail(value))
   }
 
@@ -31,13 +35,15 @@ function OtpRequest() {
     setTouched(true)
     if (problem) return emailRef.current?.focus()
 
+    setAlert(null)
     try {
       const { data } = await requestCode({ email: email.trim() }).unwrap()
       navigate('/login/code/verify', {
         state: { email: data.email, expiresInSeconds: data.expiresInSeconds, resendAvailableInSeconds: data.resendAvailableInSeconds, from: location.state?.from },
       })
     } catch (err) {
-      if (err?.data?.details?.email) setError(err.data.details.email)
+      if (accountProblem(err)) setAlert(accountProblem(err))
+      else if (err?.data?.details?.email) setError(err.data.details.email)
       else if (!isHandledGlobally(err)) toast.error("Couldn't send the code", { description: err?.data?.message || 'Please try again.' })
     }
   }
@@ -52,6 +58,8 @@ function OtpRequest() {
       <AuthHeading title="Sign in with an email code">
         Enter the email address on your account. We'll send you a 6-digit code, no password needed.
       </AuthHeading>
+
+      {alert && <FormAlert {...alert} />}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <EmailField

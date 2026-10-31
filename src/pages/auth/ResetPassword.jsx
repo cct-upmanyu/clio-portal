@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import { primaryButtonClass } from '../../components/auth/styles'
 import { useResetPasswordMutation, useVerifyResetLinkQuery } from '../../redux/api/authApi'
 import { isHandledGlobally } from '../../redux/api/baseApi'
+import { DISABLED_SIGN_OUT } from '../../utils/accountProblem'
 import { linkProblemReason } from '../../utils/linkProblem'
 import { maskEmail } from '../../utils/maskEmail'
 import { toast } from '../../utils/toast'
@@ -18,6 +19,7 @@ const PROBLEMS = {
   INVALID: { title: 'This link isn’t valid', message: 'The reset link is incomplete or has been replaced by a newer one.' },
   USED: { title: 'This link has already been used', message: 'Each reset link works once. Request a new one if you still need to reset your password.' },
   EXPIRED: { title: 'This link has expired', message: 'For your security, reset links only work for a limited time. Request a new one to continue.' },
+  DISABLED: DISABLED_SIGN_OUT,
 }
 
 function ResetPassword() {
@@ -52,7 +54,7 @@ function ResetPassword() {
       navigate('/login', { replace: true })
     } catch (err) {
       const code = err?.data?.code
-      if (code === 'RESET_LINK_INVALID') setProblem(linkProblemReason(err, code))
+      if (linkProblemReason(err, 'RESET_LINK_INVALID')) setProblem(linkProblemReason(err, 'RESET_LINK_INVALID'))
       else if (code === 'VALIDATION_FAILED') setError(err.data.details?.password || err.data.message)
       else if (!isHandledGlobally(err)) toast.error("Couldn't reset your password", { description: err?.data?.message || 'Please try again.' })
     }
@@ -62,7 +64,7 @@ function ResetPassword() {
     return (
       <LinkProblem
         {...(PROBLEMS[problem] || PROBLEMS.INVALID)}
-        action={{ to: '/forgot-password', label: 'Request a new link' }}
+        action={problem === 'DISABLED' ? undefined : { to: '/forgot-password', label: 'Request a new link' }}
       />
     )
   }
