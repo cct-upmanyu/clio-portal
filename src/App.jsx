@@ -17,6 +17,8 @@ import OtpRequest from './pages/auth/OtpRequest.jsx'
 import OtpVerify from './pages/auth/OtpVerify.jsx'
 import Invite from './pages/auth/Invite.jsx'
 import SetPassword from './pages/auth/SetPassword.jsx'
+import ForgotPassword from './pages/auth/ForgotPassword.jsx'
+import ResetPassword from './pages/auth/ResetPassword.jsx'
 
 function App() {
   return (
@@ -43,7 +45,11 @@ function App() {
           <Route path="/login/code/verify" element={<OtpVerify />} />
           <Route path="/invite/:token" element={<Invite />} />
           <Route path="/invite/:token/set-password" element={<SetPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
+
+        {/* Works signed in or out: the emailed link is the proof */}
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

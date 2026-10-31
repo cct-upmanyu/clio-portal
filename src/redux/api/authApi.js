@@ -20,6 +20,39 @@ export const authApi = baseApi.injectEndpoints({
     login: builder.mutation({
       query: (body) => ({ url: "/auth/login", method: "POST", body }),
     }),
+    // "Email me a sign-in code": the reply is the same whether or not the account exists
+    requestLoginCode: builder.mutation({
+      query: (body) => ({ url: "/auth/login/code", method: "POST", body }),
+    }),
+    // Same result as login: signed in, or continue to the MFA step
+    verifyLoginCode: builder.mutation({
+      query: (body) => ({ url: "/auth/login/code/verify", method: "POST", body }),
+    }),
+    forgotPassword: builder.mutation({
+      query: (body) => ({ url: "/auth/password/forgot", method: "POST", body }),
+    }),
+    // POST because the first call starts the window for choosing a new password
+    verifyResetLink: builder.query({
+      query: (token) => ({ url: "/auth/password/reset/verify", method: "POST", body: { token } }),
+      keepUnusedDataFor: 0,
+    }),
+    resetPassword: builder.mutation({
+      query: (body) => ({ url: "/auth/password/reset", method: "POST", body }),
+    }),
+    // Invitation: open the link, confirm the emailed code, then finish (password optional)
+    verifyInvite: builder.query({
+      query: (token) => ({ url: "/auth/invite/verify", method: "POST", body: { token } }),
+      keepUnusedDataFor: 0,
+    }),
+    sendInviteCode: builder.mutation({
+      query: (token) => ({ url: "/auth/invite/code", method: "POST", body: { token } }),
+    }),
+    verifyInviteCode: builder.mutation({
+      query: (body) => ({ url: "/auth/invite/code/verify", method: "POST", body }),
+    }),
+    completeInvite: builder.mutation({
+      query: (body) => ({ url: "/auth/invite/complete", method: "POST", body }),
+    }),
     // MFA steps after a successful password sign-in; the backend tracks progress with an HttpOnly ticket cookie.
     // Pages dispatch setAuthUser themselves on success (setup first shows the backup codes).
     getMfaStatus: builder.query({ query: () => "/auth/mfa", keepUnusedDataFor: 0 }),
@@ -66,6 +99,15 @@ export const {
   useGetMeQuery,
   useLoginMutation,
   useLogoutMutation,
+  useRequestLoginCodeMutation,
+  useVerifyLoginCodeMutation,
+  useForgotPasswordMutation,
+  useVerifyResetLinkQuery,
+  useResetPasswordMutation,
+  useVerifyInviteQuery,
+  useSendInviteCodeMutation,
+  useVerifyInviteCodeMutation,
+  useCompleteInviteMutation,
   useGetMfaStatusQuery,
   useStartMfaSetupMutation,
   useConfirmMfaSetupMutation,

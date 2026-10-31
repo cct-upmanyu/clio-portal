@@ -1,48 +1,76 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
+import EmailField from '../../components/auth/EmailField'
+import Spinner from '../../components/ui/Spinner'
 import { ChevronLeftIcon } from '../../components/ui/icons'
-import { inputClass, labelClass, linkClass, primaryButtonClass } from '../../components/auth/styles'
+import { linkClass, primaryButtonClass } from '../../components/auth/styles'
+import { useRequestLoginCodeMutation } from '../../redux/api/authApi'
+import { isHandledGlobally } from '../../redux/api/baseApi'
+import { toast } from '../../utils/toast'
+import { shouldValidateOnBlur, validateEmail } from '../../utils/validation'
 
 function OtpRequest() {
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState(location.state?.email || '')
+  const [error, setError] = useState('')
+  const [touched, setTouched] = useState(false)
+  const emailRef = useRef(null)
+  const [requestCode, { isLoading }] = useRequestLoginCodeMutation()
 
-  const handleSubmit = (e) => {
+  const handleChange = (value) => {
+    setEmail(value)
+    if (touched) setError(validateEmail(value))
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: POST /auth/otp/request { email }
-    navigate('/login/code/verify', { state: { email } })
+    const problem = validateEmail(email)
+    setError(problem)
+    setTouched(true)
+    if (problem) return emailRef.current?.focus()
+
+    try {
+      const { data } = await requestCode({ email: email.trim() }).unwrap()
+      navigate('/login/code/verify', {
+        state: { email: data.email, expiresInSeconds: data.expiresInSeconds, resendAvailableInSeconds: data.resendAvailableInSeconds, from: location.state?.from },
+      })
+    } catch (err) {
+      if (err?.data?.details?.email) setError(err.data.details.email)
+      else if (!isHandledGlobally(err)) toast.error("Couldn't send the code", { description: err?.data?.message || 'Please try again.' })
+    }
   }
 
   return (
     <AuthLayout>
-      <Link to="/login" className={`${linkClass} inline-flex items-center gap-1.5 self-start`}>
+      <Link to="/login" state={{ from: location.state?.from }} className={`${linkClass} inline-flex items-center gap-1.5 self-start`}>
         <ChevronLeftIcon className="size-4" />
         Back to sign in
       </Link>
 
       <AuthHeading title="Sign in with an email code">
-        Enter the email address on your account. We'll send you a 6-digit code — no password needed.
+        Enter the email address on your account. We'll send you a 6-digit code, no password needed.
       </AuthHeading>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="otp-email" className={labelClass}>Email</label>
-          <input
-            id="otp-email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            placeholder="you@example.com"
-            className={inputClass}
-          />
-        </div>
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <EmailField
+          ref={emailRef}
+          id="otp-email"
+          value={email}
+          onChange={handleChange}
+          onBlur={(e) => {
+            if (!shouldValidateOnBlur(e, email)) return
+            setTouched(true)
+            setError(validateEmail(email))
+          }}
+          error={error}
+          autoFocus
+        />
 
-        <button type="submit" disabled={!email} className={`${primaryButtonClass} mt-1`}>
-          Send code
+        <button type="submit" disabled={isLoading} className={`${primaryButtonClass} mt-1`}>
+          {isLoading && <Spinner />}
+          {isLoading ? 'Sending…' : 'Send code'}
         </button>
       </form>
 

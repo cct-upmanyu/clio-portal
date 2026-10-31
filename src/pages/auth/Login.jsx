@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import PasswordInput from '../../components/auth/PasswordInput'
 import { MailIcon } from '../../components/ui/icons'
@@ -8,14 +8,13 @@ import { inputClass, inputErrorClass, labelClass, linkClass, primaryButtonClass,
 import { useLoginMutation } from '../../redux/api/authApi'
 import { baseApi, isHandledGlobally } from '../../redux/api/baseApi'
 import { toast } from '../../utils/toast'
-import { useFinishSignIn } from '../../hooks/useSignInFlow'
-import { validateEmail, validateLoginPassword } from '../../utils/validation'
+import { useContinueSignIn } from '../../hooks/useSignInFlow'
+import { shouldValidateOnBlur, validateEmail, validateLoginPassword } from '../../utils/validation'
 
 const validate = { email: validateEmail, password: validateLoginPassword }
 
 function Login() {
-  const navigate = useNavigate()
-  const finishSignIn = useFinishSignIn()
+  const continueSignIn = useContinueSignIn()
   const location = useLocation()
   const dispatch = useDispatch()
   const sessionExpired = useSelector((state) => state.auth.signOutReason === 'expired')
@@ -42,7 +41,8 @@ function Login() {
     if (touched[field]) setErrors((prev) => ({ ...prev, [field]: validate[field](value) }))
   }
 
-  const handleBlur = (field, value) => () => {
+  const handleBlur = (field, value) => (e) => {
+    if (!shouldValidateOnBlur(e, value)) return
     setTouched((prev) => ({ ...prev, [field]: true }))
     setErrors((prev) => ({ ...prev, [field]: validate[field](value) }))
   }
@@ -57,11 +57,7 @@ function Login() {
 
     try {
       const { data } = await login({ email: email.trim(), password }).unwrap()
-      if (data?.mfaRequired) {
-        navigate(data.mfaSetupRequired ? '/login/mfa/setup' : '/login/mfa', { state: { from: location.state?.from } })
-        return
-      }
-      finishSignIn(data)
+      continueSignIn(data)
     } catch (err) {
       if (!isHandledGlobally(err)) {
         toast.error('Sign-in failed', { description: err?.data?.message || 'Please try again.' })
@@ -102,7 +98,7 @@ function Login() {
           error={errors.password}
           autoComplete="current-password"
           placeholder="Enter your password"
-          labelAside={<Link to="/login/code" className={linkClass}>Forgot password?</Link>}
+          labelAside={<Link to="/forgot-password" state={{ email, from: location.state?.from }} className={linkClass}>Forgot password?</Link>}
         />
 
         <button type="submit" disabled={isLoading} className={`${primaryButtonClass} mt-1`}>
@@ -116,7 +112,7 @@ function Login() {
         <span className="h-px flex-1 bg-line" />
       </div>
 
-      <Link to="/login/code" state={{ email }} className={secondaryButtonClass}>
+      <Link to="/login/code" state={{ email, from: location.state?.from }} className={secondaryButtonClass}>
         <MailIcon className="size-[18px]" />
         Email me a sign-in code
       </Link>

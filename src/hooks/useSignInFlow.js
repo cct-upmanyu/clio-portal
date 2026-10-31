@@ -16,13 +16,39 @@ export function useFinishSignIn() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  return useCallback((user) => {
+  return useCallback((user, { firstVisit = false } = {}) => {
     dispatch(setAuthUser(user))
-    toast.success(user?.firstName ? `Welcome back, ${user.firstName}` : 'Welcome back', {
+    const greeting = firstVisit ? 'Welcome' : 'Welcome back'
+    toast.success(user?.firstName ? `${greeting}, ${user.firstName}` : greeting, {
       description: 'You are signed in to the Client Portal.',
     })
     navigate(location.state?.from?.pathname || '/', { replace: true })
   }, [dispatch, navigate, location.state])
+}
+
+// After any first factor (password, email code, accepted invitation): the MFA step, or straight in
+export function useContinueSignIn() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const finishSignIn = useFinishSignIn()
+
+  return useCallback((data, options) => {
+    if (data?.mfaRequired) {
+      navigate(data.mfaSetupRequired ? '/login/mfa/setup' : '/login/mfa', { replace: true, state: { from: location.state?.from } })
+      return
+    }
+    finishSignIn(data, options)
+  }, [navigate, location.state, finishSignIn])
+}
+
+// Inline message for a wrong or expired emailed code, or '' for errors handled elsewhere
+export function emailCodeErrorMessage(err) {
+  const code = err?.data?.code
+  if (code !== 'INVALID_EMAIL_CODE' && code !== 'EMAIL_CODE_EXPIRED') return ''
+  const remaining = err.data.details?.attemptsRemaining
+  return remaining > 0
+    ? `${err.data.message} ${remaining} ${remaining === 1 ? 'attempt' : 'attempts'} left.`
+    : err.data.message
 }
 
 // Shared handling for /auth/mfa errors. Returns the message to show under the code field, if any.
