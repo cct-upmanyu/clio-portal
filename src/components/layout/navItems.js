@@ -1,10 +1,10 @@
 import { BillIcon, CalendarIcon, DashboardIcon, DocumentsIcon, HomeIcon, MattersIcon, MessageIcon, TaskIcon, UsersIcon } from '../ui/icons'
 
 // Shared by the desktop Sidebar and the mobile drawer.
-// TODO: badge counts from the backend (unread messages, open tasks)
+// Badge counts come from MainNav (unread messages for the selected matter)
 export const NAV_ITEMS = [
   { to: '/', label: 'Home', icon: HomeIcon, end: true },
-  { to: '/messages', label: 'Messages', icon: MessageIcon, badge: 2 },
+  { to: '/messages', label: 'Messages', icon: MessageIcon },
   { to: '/tasks', label: 'Tasks', icon: TaskIcon },
   { to: '/documents', label: 'Documents', icon: DocumentsIcon },
   { to: '/events', label: 'Events', icon: CalendarIcon },

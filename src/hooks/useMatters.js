@@ -18,7 +18,7 @@ const toMatter = (matter) => ({
 // The client's matters, the ones they're invited to but haven't accepted, and the one every page is showing. The selection is saved on the user
 // (GET /auth/me → selectedMatterId), so a reload or another device opens the same matter.
 export function useMatters() {
-  const { data, isLoading, isError, refetch, isFetching } = useGetMattersQuery()
+  const { data, isLoading, isError, refetch, isFetching } = useGetMattersQuery(undefined, { refetchOnFocus: true })
   const savedId = useSelector((state) => state.auth.user?.selectedMatterId ?? null)
   const [saveSelection] = useSelectMatterMutation()
 

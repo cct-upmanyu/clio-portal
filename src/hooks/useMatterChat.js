@@ -22,6 +22,8 @@ export function useMatterChat(crmMatterId) {
 
   const query = useGetMessagesQuery(crmMatterId, {
     skip: !crmMatterId,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
     pollingInterval: connected ? 0 : FALLBACK_POLL_MS,
     skipPollingIfUnfocused: true,
   })

@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
+import { setupListeners } from '@reduxjs/toolkit/query'
 import { baseApi } from './api/baseApi'
 import authReducer from './slices/authSlice'
 import { setDisplayTimeZone } from '../utils/dates'
@@ -12,6 +13,9 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),
 })
+
+// Lets queries opt in to refetching when the tab regains focus or the network comes back
+setupListeners(store.dispatch)
 
 // Every time on screen follows the signed-in user's time zone (or the browser's when they have none).
 // Subscribed here, before the UI, so the first render after sign-in already uses it.

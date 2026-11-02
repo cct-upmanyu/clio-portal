@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { useChatNotifications } from '../../hooks/useChatNotifications'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import AppLayout from './AppLayout'
 import RequireMatter from './RequireMatter'
@@ -6,6 +7,7 @@ import RequireMatter from './RequireMatter'
 // One frame for both portals; only the client portal needs a matter to show
 function PortalLayout() {
   const { isAdmin } = useCurrentUser()
+  useChatNotifications()
   if (isAdmin) return <AppLayout />
   return (
     <RequireMatter>

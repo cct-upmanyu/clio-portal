@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import MessageThread from './MessageThread'
 import { useMatterChat } from '../../hooks/useMatterChat'
 import { useMarkMatterReadMutation, useSendMessageMutation } from '../../redux/api/messageApi'
+import { setActiveChat } from '../../utils/activeChat'
 
 const newClientMessageId = () => crypto.randomUUID().replaceAll('-', '')
 
@@ -49,12 +50,25 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
   const [sendMessage] = useSendMessageMutation()
   const [outbox, setOutbox] = useState([])
 
-  // Seen once the chat has loaded, and again whenever a new message arrives while it's open
+  // Only read while it's actually seen: with the browser tab in the background, new messages stay
+  // unread (badges show them) until the user comes back
+  const [visible, setVisible] = useState(() => document.visibilityState === 'visible')
+  useEffect(() => {
+    const onChange = () => setVisible(document.visibilityState === 'visible')
+    document.addEventListener('visibilitychange', onChange)
+    return () => document.removeEventListener('visibilitychange', onChange)
+  }, [])
+  useEffect(() => {
+    setActiveChat(visible ? crmMatterId : null)
+    return () => setActiveChat(null)
+  }, [crmMatterId, visible])
+
+  // Seen once the chat has loaded, and again whenever a new message arrives while it's on screen
   const [markRead] = useMarkMatterReadMutation()
   const lastMessageId = saved.at(-1)?.id
   useEffect(() => {
-    if (viewer === 'client' && isSuccess) markRead(crmMatterId)
-  }, [viewer, crmMatterId, isSuccess, lastMessageId, markRead])
+    if (viewer === 'client' && isSuccess && visible) markRead(crmMatterId)
+  }, [viewer, crmMatterId, isSuccess, visible, lastMessageId, markRead])
 
   const deliver = async (item) => {
     setOutbox((prev) => prev.map((p) => (p.clientMessageId === item.clientMessageId ? { ...p, failed: false } : p)))
