@@ -11,7 +11,9 @@ const toMatter = (matter) => ({
   stage: matter.stage || '—',
   attorney: matter.responsibleAttorney || 'No attorney assigned',
   openedOn: matter.openedOn,
-  contacts: matter.contacts || [],
+  // On the matter now (accepted, pending or expired invitation); removed ones are kept apart for history
+  contacts: (matter.contacts || []).filter((c) => c.invitation !== 'removed'),
+  removedContacts: (matter.contacts || []).filter((c) => c.invitation === 'removed'),
 })
 
 export function useAdminMatters() {

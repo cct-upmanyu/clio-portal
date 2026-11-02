@@ -4,9 +4,9 @@ import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
-import Avatar from '../../components/ui/Avatar'
-import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon, UsersIcon } from '../../components/ui/icons'
+import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
+import MatterUsers from '../../components/admin/MatterUsers'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import MatterChat from '../../components/messages/MatterChat'
 import { useAdminMatters } from '../../hooks/useAdminMatters'
@@ -16,39 +16,6 @@ import { formatDay } from '../../utils/dates'
 
 const TABS = ['messages', 'tasks', 'events', 'users', 'activity']
 const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events', users: 'Users', activity: 'Activity' }
-
-// The clients invited to the matter and whether they've accepted (only accepted ones can see it)
-function MatterUsers({ matter, onInvite }) {
-  if (matter.contacts.length === 0) {
-    return (
-      <div className="flex flex-col items-center pb-6">
-        <EmptyState icon={UsersIcon} title="No client invited yet">
-          Invite a client to give them access to this matter in the portal.
-        </EmptyState>
-        {matter.status !== 'Closed' && <Button icon={UserPlusIcon} onClick={onInvite}>Invite client</Button>}
-      </div>
-    )
-  }
-  return (
-    <ul aria-label="Clients on this matter" className="flex flex-col divide-y divide-divider">
-      {matter.contacts.map((contact) => {
-        const accepted = contact.invitation === 'accepted'
-        return (
-          <li key={contact.userId} className="flex items-center gap-3 py-3">
-            <Avatar name={contact.name} size="sm" />
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-sm font-medium">{contact.name}</span>
-              <span className="text-[13px] text-muted">Client</span>
-            </span>
-            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${accepted ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`}>
-              {accepted ? 'Accepted' : 'Invitation pending'}
-            </span>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
 
 // Everything that happened on the matter: invitations, acceptances, removals, documents… (firm view: all of it)
 function MatterActivity({ crmMatterId }) {

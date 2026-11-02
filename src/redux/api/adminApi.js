@@ -45,7 +45,16 @@ export const adminApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "AdminMatters"]),
     }),
+    // Takes a client off a matter (admins only). Their messages and history on it stay.
+    removeMatterContact: builder.mutation({
+      query: ({ crmMatterId, userId }) => ({ url: `/admin/matters/${crmMatterId}/contacts/${userId}/remove`, method: "POST" }),
+      transformResponse: (response) => response.data,
+      invalidatesTags: (result, error) => (error ? [] : ["AdminMatters", "AdminDashboard", "Activity"]),
+    }),
   }),
 });
 
-export const { useGetAdminDashboardQuery, useGetAdminUsersQuery, useGetAdminMattersQuery, useInviteUserMutation, useUpdateUserMutation } = adminApi;
+export const {
+  useGetAdminDashboardQuery, useGetAdminUsersQuery, useGetAdminMattersQuery, useInviteUserMutation, useUpdateUserMutation,
+  useRemoveMatterContactMutation,
+} = adminApi;

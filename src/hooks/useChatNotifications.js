@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { baseApi } from '../redux/api/baseApi'
 import { isActiveChat } from '../utils/activeChat'
+import { toast } from '../utils/toast'
 import { getSocket } from '../utils/socket'
 
 // Runs on every signed-in page. The server sends "unread" (no content) to a client's own room when one
@@ -23,17 +24,25 @@ export function useChatNotifications() {
     const onFirmUnread = () => dispatch(baseApi.util.invalidateTags(['AdminDashboard']))
     // Firm users: something was recorded on a timeline
     const onActivity = () => dispatch(baseApi.util.invalidateTags(['Activity']))
+    // A client taken off one of their matters: it leaves the switcher (the portal moves to their next
+    // matter); the server has already cut its live updates
+    const onMatterRemoved = () => {
+      dispatch(baseApi.util.invalidateTags(['Matters', 'Dashboard', 'Messages', 'Activity']))
+      toast.info('You no longer have access to one of your matters', { description: "Contact your attorney's office if you think this is a mistake." })
+    }
     // Back after a drop: anything that arrived meanwhile only shows in fresh counts
     const onReconnect = () => dispatch(baseApi.util.invalidateTags(['Matters', 'AdminDashboard', 'Activity']))
 
     socket.on('unread', onUnread)
     socket.on('firm-unread', onFirmUnread)
     socket.on('activity', onActivity)
+    socket.on('matter-removed', onMatterRemoved)
     socket.io.on('reconnect', onReconnect)
     return () => {
       socket.off('unread', onUnread)
       socket.off('firm-unread', onFirmUnread)
       socket.off('activity', onActivity)
+      socket.off('matter-removed', onMatterRemoved)
       socket.io.off('reconnect', onReconnect)
     }
   }, [signedIn, dispatch])

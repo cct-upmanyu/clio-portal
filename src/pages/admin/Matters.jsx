@@ -23,7 +23,7 @@ const columns = 'lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.6fr)_minmax(0,
 // "Jane Doe" / "Jane Doe, Marcus Lee" plus who still has to accept
 function Clients({ contacts }) {
   if (contacts.length === 0) return <span className="text-[13px] font-medium text-warning">No client invited yet</span>
-  const pending = contacts.filter((c) => c.invitation === 'pending').length
+  const pending = contacts.filter((c) => c.invitation !== 'accepted').length
   return (
     <span className="flex min-w-0 flex-col gap-0.5">
       <span className="truncate text-sm text-body">{contacts.map((c) => c.name).join(', ')}</span>
