@@ -1,0 +1,104 @@
+import { useEffect, useMemo, useState } from 'react'
+import MessageThread from './MessageThread'
+import { useMatterChat } from '../../hooks/useMatterChat'
+import { useMarkMatterReadMutation, useSendMessageMutation } from '../../redux/api/messageApi'
+
+const newClientMessageId = () => crypto.randomUUID().replaceAll('-', '')
+
+const nameOf = (person) => [person?.firstName, person?.lastName].filter(Boolean).join(' ')
+
+const authorOf = (message) => {
+  if (message.mine) return 'You'
+  return nameOf(message.sender) || (message.senderType === 'staff' ? 'Legal team' : 'Client')
+}
+
+const typingLine = (users) => {
+  const names = users.map((user) => user.firstName || nameOf(user) || 'Someone')
+  if (names.length === 0) return ''
+  if (names.length === 1) return `${names[0]} is typing…`
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`
+  return 'Several people are typing…'
+}
+
+// Who else has this chat open. The client sees the legal team; the firm sees the clients and colleagues.
+function OnlineBar({ online, connected, viewer }) {
+  const roleLabel = (user) => (user.role === 'staff' ? (viewer === 'client' ? 'Legal team' : 'Staff') : 'Client')
+  return (
+    <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-white px-6 py-2 text-[13px] max-sm:px-3">
+      {!connected ? (
+        <span className="text-muted">Connecting…</span>
+      ) : online.length === 0 ? (
+        <span className="text-muted">{viewer === 'client' ? 'Your legal team isn\'t online right now. They\'ll see your messages when they are.' : 'No one else has this chat open.'}</span>
+      ) : (
+        online.map((user) => (
+          <span key={user.id} className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="size-2 rounded-full bg-success" />
+            <span className="font-medium text-ink">{nameOf(user) || roleLabel(user)}</span>
+            <span className="text-muted">{roleLabel(user)} · Online</span>
+          </span>
+        ))
+      )}
+    </div>
+  )
+}
+
+// A matter's live chat, for the client portal (`viewer="client"`, marks it read) and the Admin Console
+// (`viewer="firm"`). Sends go through the API; the socket brings in everyone's messages, presence and typing.
+function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
+  const { messages: saved, isSuccess, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
+  const [sendMessage] = useSendMessageMutation()
+  const [outbox, setOutbox] = useState([])
+
+  // Seen once the chat has loaded, and again whenever a new message arrives while it's open
+  const [markRead] = useMarkMatterReadMutation()
+  const lastMessageId = saved.at(-1)?.id
+  useEffect(() => {
+    if (viewer === 'client' && isSuccess) markRead(crmMatterId)
+  }, [viewer, crmMatterId, isSuccess, lastMessageId, markRead])
+
+  const deliver = async (item) => {
+    setOutbox((prev) => prev.map((p) => (p.clientMessageId === item.clientMessageId ? { ...p, failed: false } : p)))
+    try {
+      await sendMessage({ crmMatterId, body: item.body, clientMessageId: item.clientMessageId }).unwrap()
+      setOutbox((prev) => prev.filter((p) => p.clientMessageId !== item.clientMessageId))
+    } catch {
+      setOutbox((prev) => prev.map((p) => (p.clientMessageId === item.clientMessageId ? { ...p, failed: true } : p)))
+    }
+  }
+
+  const handleSend = ({ body }) => {
+    if (!body) return
+    stopTyping()
+    const item = { clientMessageId: newClientMessageId(), body, sentAt: new Date().toISOString() }
+    setOutbox((prev) => [...prev, item])
+    deliver(item)
+  }
+
+  const messages = useMemo(() => {
+    const shown = saved.map((m) => ({ id: m.id, author: authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt }))
+    // The socket can bring a message back before its own POST does
+    const savedIds = new Set(saved.map((m) => m.clientMessageId).filter(Boolean))
+    const pending = outbox
+      .filter((p) => !savedIds.has(p.clientMessageId))
+      .map((p) => ({
+        id: p.clientMessageId, author: 'You', fromMe: true, body: p.body, sentAt: p.sentAt,
+        sending: !p.failed, failed: p.failed, onRetry: () => deliver(p),
+      }))
+    return [...shown, ...pending]
+  }, [saved, outbox])
+
+  return (
+    <MessageThread
+      messages={messages}
+      onSend={handleSend}
+      onTyping={notifyTyping}
+      title={title}
+      emptyText={emptyText}
+      header={<OnlineBar online={online} connected={connected} viewer={viewer} />}
+      typingText={typingLine(typingUsers)}
+      allowAttachments={false}
+    />
+  )
+}
+
+export default MatterChat

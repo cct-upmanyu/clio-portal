@@ -11,12 +11,13 @@ import Tabs from '../../components/ui/Tabs'
 import { MattersIcon, UserPlusIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
 import SearchField from '../../components/admin/SearchField'
-import { useAdminData } from '../../hooks/useAdminData'
+import { useAdminMatters } from '../../hooks/useAdminMatters'
 import { useInviteUser } from '../../hooks/useInviteUser'
 import { formatDay } from '../../utils/dates'
 
 const PAGE_SIZE = 10
 const STATUSES = ['Open', 'Pending', 'Closed']
+const opened = (matter) => (matter.openedOn ? formatDay(matter.openedOn) : '—')
 const columns = 'lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto] lg:items-center lg:gap-4'
 
 // "Jane Doe" / "Jane Doe, Marcus Lee" plus who still has to accept
@@ -37,7 +38,7 @@ function MatterRow({ matter, onInvite }) {
     <li className={`flex items-start gap-3 py-3 ${columns}`}>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <Link to={`/matters/${matter.id}`} className="truncate text-sm font-medium hover:text-brand">{matter.number} · {matter.name}</Link>
-        <span className="truncate text-[13px] text-muted">{matter.attorney} · Opened {formatDay(matter.openedOn)}</span>
+        <span className="truncate text-[13px] text-muted">{matter.attorney} · Opened {opened(matter)}</span>
         <span className="mt-1.5 flex flex-col gap-1.5 lg:hidden">
           <Clients contacts={matter.contacts} />
           <span className="flex items-center gap-3 text-[13px] text-muted">
@@ -48,7 +49,7 @@ function MatterRow({ matter, onInvite }) {
       </div>
       <span className="hidden min-w-0 lg:flex"><Clients contacts={matter.contacts} /></span>
       <span className="hidden text-sm text-body lg:block">{matter.stage}</span>
-      <span className="hidden text-[13px] text-muted lg:block">{formatDay(matter.openedOn)}</span>
+      <span className="hidden text-[13px] text-muted lg:block">{opened(matter)}</span>
       <span className="hidden lg:block"><StatusPill status={matter.status} /></span>
       {canInvite ? (
         <Button variant="secondary" size="sm" icon={UserPlusIcon} onClick={() => onInvite(matter.crmMatterId)} aria-label={`Invite a client to ${matter.number} · ${matter.name}`}>
@@ -62,7 +63,7 @@ function MatterRow({ matter, onInvite }) {
 }
 
 function Matters() {
-  const { matters } = useAdminData()
+  const { matters, isLoading } = useAdminMatters()
   const { inviteOpen, inviteCrmMatterId, openInvite, closeInvite, invite } = useInviteUser()
   const [tab, setTab] = useState('all')
   const [query, setQuery] = useState('')
@@ -95,7 +96,9 @@ function Matters() {
 
         <Tabs label="Filter by status" tabs={tabs} value={tab} onChange={(id) => { setTab(id); setPage(1) }} idPrefix="matters" />
 
-        {pageMatters.length > 0 ? (
+        {isLoading ? (
+          <p className="py-8 text-center text-sm text-muted">Loading matters…</p>
+        ) : pageMatters.length > 0 ? (
           <>
             <div aria-hidden="true" className={`hidden border-b border-divider pb-2 text-xs font-semibold uppercase tracking-[0.06em] text-muted ${columns}`}>
               <span>Matter</span><span>Clients</span><span>Stage</span><span>Opened</span><span>Status</span><span className="w-[86px]" />

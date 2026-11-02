@@ -6,7 +6,8 @@ import { formatBytes } from '../../utils/files'
 const MAX_HEIGHT = 160
 
 // Text box + attachments. Enter sends, Shift+Enter adds a new line.
-function MessageComposer({ onSend, allowAttachments = true }) {
+// `onTyping`: called on every keystroke, for the "typing…" others see
+function MessageComposer({ onSend, onTyping, allowAttachments = true }) {
   const [body, setBody] = useState('')
   const [files, setFiles] = useState([])
   const fileInputRef = useRef(null)
@@ -90,6 +91,7 @@ function MessageComposer({ onSend, allowAttachments = true }) {
           onChange={(e) => {
             setBody(e.target.value)
             autoGrow(e.target)
+            if (e.target.value.trim()) onTyping?.()
           }}
           onKeyDown={handleKeyDown}
           placeholder="Type a message…"

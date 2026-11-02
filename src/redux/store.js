@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { baseApi } from './api/baseApi'
 import authReducer from './slices/authSlice'
 import { setDisplayTimeZone } from '../utils/dates'
+import { closeSocket } from '../utils/socket'
 
 export const store = configureStore({
   reducer: {
@@ -15,10 +16,18 @@ export const store = configureStore({
 // Every time on screen follows the signed-in user's time zone (or the browser's when they have none).
 // Subscribed here, before the UI, so the first render after sign-in already uses it.
 let lastTimeZone
+let lastUserId
 store.subscribe(() => {
-  const timeZone = store.getState().auth.user?.timezone || null
+  const user = store.getState().auth.user
+  const timeZone = user?.timezone || null
   if (timeZone !== lastTimeZone) {
     lastTimeZone = timeZone
     setDisplayTimeZone(timeZone)
+  }
+  // Signed out, or signed in as someone else: the chat connection belonged to the previous session
+  const userId = user?.id ?? null
+  if (userId !== lastUserId) {
+    if (lastUserId != null) closeSocket()
+    lastUserId = userId
   }
 })

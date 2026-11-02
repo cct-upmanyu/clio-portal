@@ -1,21 +1,15 @@
-import { useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
-import EventItem from '../../components/ui/EventItem'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
 import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
-import MessageThread from '../../components/messages/MessageThread'
-import TaskRow from '../../components/tasks/TaskRow'
-import { matterDetails } from '../../data/adminSampleData'
-import { adminActions, useAdminData } from '../../hooks/useAdminData'
+import MatterChat from '../../components/messages/MatterChat'
+import { useAdminMatters } from '../../hooks/useAdminMatters'
 import { useInviteUser } from '../../hooks/useInviteUser'
-import { formatDay, formatShort } from '../../utils/dates'
-import { sortTasks } from '../../utils/tasks'
-import { toast } from '../../utils/toast'
+import { formatDay } from '../../utils/dates'
 
 const TABS = ['messages', 'tasks', 'events']
 const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events' }
@@ -30,42 +24,25 @@ function ClientChip({ contact }) {
   )
 }
 
-// Sample data until the admin console is connected to the messages API; sends stay on this screen
-function SampleThread({ matter, title }) {
-  const [messages, setMessages] = useState(matter.messages)
-  const handleSend = ({ body }) => {
-    if (body) setMessages((prev) => [...prev, { id: crypto.randomUUID(), author: 'You', fromMe: true, body, sentAt: new Date().toISOString() }])
-  }
-  return <MessageThread messages={messages} onSend={handleSend} title={title} allowAttachments={false} />
-}
-
 function MatterDetail() {
   const { matterId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { matters } = useAdminData()
+  const { matters, isLoading, refetch, isFetching } = useAdminMatters()
   const { inviteOpen, openInvite, closeInvite, invite } = useInviteUser()
-  const [syncing, setSyncing] = useState(false)
 
+  if (isLoading) {
+    return (
+      <Page>
+        <p className="py-8 text-center text-sm text-muted">Loading matter…</p>
+      </Page>
+    )
+  }
   const matter = matters.find((m) => m.id === matterId)
   if (!matter) return <Navigate to="/matters" replace />
 
-  const details = matterDetails(matter.id)
-  const tasks = sortTasks(details.tasks)
   const tab = TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
-  const counts = { messages: details.messages.length, tasks: tasks.filter((t) => t.status !== 'completed').length, events: details.events.length }
   const label = `${matter.number} · ${matter.name}`
-
-  const resync = async () => {
-    setSyncing(true)
-    try {
-      await adminActions.resyncMatter(matter)
-      toast.success('Matter updated from Zoho CRM', { description: label })
-    } catch {
-      toast.error("Couldn't sync from Zoho CRM", { description: 'Please try again in a moment.' })
-    } finally {
-      setSyncing(false)
-    }
-  }
+  const hasAcceptedClient = matter.contacts.some((c) => c.invitation === 'accepted')
 
   return (
     <Page scroll={false}>
@@ -82,13 +59,13 @@ function MatterDetail() {
               <StatusPill status={matter.status} size="md" dot />
             </div>
             <p className="text-[13px] leading-normal text-muted">
-              {matter.attorney} · {matter.stage} · Opened {formatDay(matter.openedOn)}
-              <span className="max-sm:block"><span className="max-sm:hidden"> · </span>Synced from Zoho CRM {formatShort(matter.lastSyncedAt)}</span>
+              {matter.attorney} · {matter.stage}{matter.openedOn ? ` · Opened ${formatDay(matter.openedOn)}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" icon={RefreshIcon} loading={syncing} onClick={resync}>
-              {syncing ? 'Syncing…' : 'Resync from CRM'}
+            {/* Re-reads the portal's copy of the matter; syncing from Zoho CRM itself isn't built yet */}
+            <Button variant="secondary" icon={RefreshIcon} loading={isFetching} onClick={refetch}>
+              {isFetching ? 'Refreshing…' : 'Refresh'}
             </Button>
             {matter.status !== 'Closed' && (
               <Button icon={UserPlusIcon} onClick={() => openInvite(matter.crmMatterId)}>Invite client</Button>
@@ -108,32 +85,32 @@ function MatterDetail() {
           idPrefix="matter"
           value={tab}
           onChange={(id) => setSearchParams(id === 'messages' ? {} : { tab: id }, { replace: true })}
-          tabs={TABS.map((id) => ({ id, label: TAB_LABELS[id], count: counts[id] }))}
+          tabs={TABS.map((id) => ({ id, label: TAB_LABELS[id] }))}
         />
       </div>
 
       {/* Communication fills the rest of the screen and scrolls inside; the lists scroll as a whole */}
       {tab === 'messages' ? (
         <div role="tabpanel" id="matter-panel-messages" aria-labelledby="matter-messages" className="flex min-h-0 flex-1 flex-col">
-          <SampleThread key={matter.id} matter={details}title={`Messages with the client on ${label}`} />
+          <MatterChat
+            key={matter.crmMatterId}
+            crmMatterId={matter.crmMatterId}
+            viewer="firm"
+            title={`Messages with the client on ${label}`}
+            emptyText={hasAcceptedClient
+              ? 'No messages yet. Messages sent here appear in the client portal for this matter.'
+              : 'No messages yet. Clients see messages sent here once they accept their invitation.'}
+          />
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-2 max-sm:px-4">
           <TabPanel id={tab} idPrefix="matter">
-            {tab === 'tasks' && (tasks.length > 0 ? (
-              <ul className="flex flex-col divide-y divide-divider">
-                {tasks.map((task) => <TaskRow key={task.id} task={task} />)}
-              </ul>
-            ) : (
+            {tab === 'tasks' && (
               <EmptyState icon={TaskIcon} title="No tasks">Tasks for the client on this matter will show here once they sync from Zoho CRM.</EmptyState>
-            ))}
-            {tab === 'events' && (details.events.length > 0 ? (
-              <div className="flex flex-col divide-y divide-divider">
-                {details.events.map((event) => <EventItem key={event.id} {...event} />)}
-              </div>
-            ) : (
+            )}
+            {tab === 'events' && (
               <EmptyState icon={CalendarIcon} title="No upcoming events">Meetings, hearings and deadlines will show here once they sync from Zoho CRM.</EmptyState>
-            ))}
+            )}
           </TabPanel>
         </div>
       )}
