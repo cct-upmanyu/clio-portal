@@ -6,6 +6,7 @@ import { CloseIcon, HelpIcon, SettingsIcon, SignOutIcon } from '../ui/icons'
 import { firm } from '../../data/sampleData'
 import { useModalDialog } from '../../hooks/useModalDialog'
 import MainNav, { navItemClass, navItemIdleClass } from './MainNav'
+import { portalName } from './navItems'
 import SignOutDialog from './SignOutDialog'
 
 const DESKTOP_QUERY = '(min-width: 1024px)'
@@ -47,9 +48,9 @@ function MobileDrawer({ open, onClose, user }) {
         <div className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-4">
           {/* Centered brand header, same as the desktop Sidebar; close button pinned top-right */}
           <div className="relative border-b border-white/10 px-2 pb-5 pt-3">
-            <Link to="/" onClick={onClose} aria-label="Client portal home" className="flex flex-col items-center gap-3">
+            <Link to="/" onClick={onClose} aria-label={`${portalName(user.portal)} home`} className="flex flex-col items-center gap-3">
               <BrandLogo lightClass="h-12" darkClass="size-20" frameClass="flex rounded-xl bg-white px-3.5 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.25)]" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-nav-muted">Client Portal</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-nav-muted">{portalName(user.portal)}</span>
             </Link>
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { BillIcon, CalendarIcon, DocumentsIcon, HomeIcon, MessageIcon, TaskIcon } from '../ui/icons'
+import { BillIcon, CalendarIcon, DashboardIcon, DocumentsIcon, HomeIcon, MattersIcon, MessageIcon, TaskIcon, UsersIcon } from '../ui/icons'
 
 // Shared by the desktop Sidebar and the mobile drawer.
 // TODO: badge counts from the backend (unread messages, open tasks)
@@ -10,3 +10,11 @@ export const NAV_ITEMS = [
   { to: '/events', label: 'Events', icon: CalendarIcon },
   { to: '/bills', label: 'Bills', icon: BillIcon },
 ]
+
+export const ADMIN_NAV_ITEMS = [
+  { to: '/', label: 'Dashboard', icon: DashboardIcon, end: true },
+  { to: '/matters', label: 'Matters', icon: MattersIcon },
+  { to: '/users', label: 'Users', icon: UsersIcon },
+]
+
+export const portalName = (portal) => (portal === 'admin' ? 'Admin Console' : 'Client Portal')

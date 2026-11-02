@@ -1,24 +1,35 @@
-import { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { matters } from '../data/sampleData'
-import { SELECTED_MATTER_KEY, setSelectedMatter } from '../redux/slices/matterSlice'
+import { useCallback, useMemo } from 'react'
+import { useSelector } from 'react-redux'
+import { useGetMattersQuery, useSelectMatterMutation } from '../redux/api/matterApi'
+import { formatDay } from '../utils/dates'
 
-// The client's matters and the one every page is currently showing.
-// TODO: load matters from the backend (RTK Query) instead of sample data.
+// Documents, messages, tasks and events aren't served by the backend yet: their pages show empty states
+const toMatter = (matter) => ({
+  ...matter,
+  title: matter.name || 'Untitled matter',
+  label: [matter.number, matter.name || 'Untitled matter'].filter(Boolean).join(' · '),
+  opened: matter.openedOn ? formatDay(matter.openedOn) : null,
+  documents: [],
+  messages: [],
+  tasks: [],
+  events: [],
+})
+
+// The client's matters, the ones they're invited to but haven't accepted, and the one every page is showing. The selection is saved on the user
+// (GET /auth/me → selectedMatterId), so a reload or another device opens the same matter.
 export function useMatters() {
-  const dispatch = useDispatch()
-  const selectedId = useSelector((state) => state.matter.selectedMatterId)
+  const { data, isLoading, isError, refetch, isFetching } = useGetMattersQuery()
+  const savedId = useSelector((state) => state.auth.user?.selectedMatterId ?? null)
+  const [saveSelection] = useSelectMatterMutation()
 
-  const selectedMatter = matters.find((m) => m.id === selectedId) ?? matters[0]
+  const matters = useMemo(() => (data?.matters ?? []).map(toMatter), [data])
+  const invitations = useMemo(() => (data?.invitations ?? []).map((invitation) => toMatter(invitation.matter)), [data])
+  // A saved matter the user can no longer see falls back to their first one, as on the backend
+  const selectedMatter = matters.find((m) => String(m.id) === String(savedId)) ?? matters[0] ?? null
 
   const selectMatter = useCallback((id) => {
-    dispatch(setSelectedMatter(id))
-    try {
-      localStorage.setItem(SELECTED_MATTER_KEY, id)
-    } catch {
-      // Storage unavailable (private mode); the choice still applies for this visit
-    }
-  }, [dispatch])
+    if (String(id) !== String(selectedMatter?.id)) saveSelection(String(id))
+  }, [saveSelection, selectedMatter?.id])
 
-  return { matters, selectedMatter, selectMatter }
+  return { matters, invitations, selectedMatter, selectMatter, isLoading, isError, refetch, isFetching }
 }

@@ -5,21 +5,23 @@ import { firm } from '../../data/sampleData'
 
 const contactLink = 'inline-flex items-center gap-2 font-medium text-brand hover:text-brand-dark'
 
-function LegalTeamCard() {
+function LegalTeamCard({ matter }) {
+  const attorney = matter?.responsibleAttorney || firm.attorney.name
+
   return (
     <Section aria-labelledby="team-title" className="gap-4">
       <h2 id="team-title" className="text-base font-semibold">Your legal team</h2>
 
       <div className="flex items-center gap-3">
-        <Avatar name={firm.attorney.name} size="md" />
+        <Avatar name={attorney} size="md" />
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold">{firm.attorney.name}</span>
+          <span className="text-sm font-semibold">{attorney}</span>
           <span className="text-[13px] text-muted">{firm.attorney.role}</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2.5 border-t border-divider pt-4 text-sm leading-normal">
-        <span className="font-semibold">{firm.name}</span>
+        <span className="font-semibold">{matter?.firmName || firm.name}</span>
         <address className="not-italic text-muted">
           {firm.addressLines.map((line) => <span key={line} className="block">{line}</span>)}
         </address>

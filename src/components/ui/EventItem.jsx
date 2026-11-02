@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { MapPinIcon } from './icons'
 
+// A link when `to` is given, otherwise plain
 function EventItem({ to, month, day, title, time, place }) {
+  const Tag = to ? Link : 'div'
   return (
-    <Link to={to} className="group flex min-h-[76px] items-center gap-3 py-3">
+    <Tag {...(to ? { to } : {})} className="group flex min-h-[76px] items-center gap-3 py-3">
       <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-[10px] border border-line bg-white">
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-brand">{month}</span>
         <span className="text-lg font-bold leading-tight">{day}</span>
@@ -19,7 +21,7 @@ function EventItem({ to, month, day, title, time, place }) {
           </span>
         )}
       </span>
-    </Link>
+    </Tag>
   )
 }
 

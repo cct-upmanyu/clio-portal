@@ -1,14 +1,17 @@
 import { NavLink } from 'react-router-dom'
-import { NAV_ITEMS } from './navItems'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { ADMIN_NAV_ITEMS, NAV_ITEMS } from './navItems'
 
 export const navItemClass = 'flex h-10 items-center gap-3 rounded-lg px-3 text-sm'
 export const navItemIdleClass = 'font-medium text-nav-text hover:bg-white/10 hover:text-white'
 
 // Main section links on the navy background (desktop Sidebar and mobile drawer)
 function MainNav({ onNavigate }) {
+  const { isAdmin } = useCurrentUser()
+
   return (
     <nav aria-label="Main" className="flex flex-col gap-1">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end, badge }) => (
+      {(isAdmin ? ADMIN_NAV_ITEMS : NAV_ITEMS).map(({ to, label, icon: Icon, end, badge }) => (
         <NavLink
           key={to}
           to={to}

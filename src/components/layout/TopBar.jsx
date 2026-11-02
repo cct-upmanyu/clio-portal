@@ -4,7 +4,8 @@ import BrandLogo from '../ui/BrandLogo'
 import AccountMenu from './AccountMenu'
 import MatterSwitcher from './MatterSwitcher'
 import MobileDrawer from './MobileDrawer'
-import { BriefcaseIcon, MenuIcon } from '../ui/icons'
+import { BriefcaseIcon, MenuIcon, ShieldIcon } from '../ui/icons'
+import { firm } from '../../data/sampleData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 
 // Brand blue over the navy Sidebar: the bar stands out as the page header (Clio-style)
@@ -17,15 +18,22 @@ function TopBar() {
     <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-4 border-b border-black/10 bg-brand px-6 py-2.5 text-white shadow-[0_1px_2px_rgba(10,31,61,0.12)] max-lg:min-h-14 max-sm:px-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Mobile/tablet: firm logo in place of the sidebar */}
-        <Link to="/" aria-label="Client portal home" className="flex shrink-0 lg:hidden">
+        <Link to="/" aria-label="Home" className="flex shrink-0 lg:hidden">
           <BrandLogo lightClass="h-8" darkClass="size-10" frameClass="flex rounded-lg bg-white p-1" />
         </Link>
 
         <span aria-hidden="true" className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white lg:flex">
-          <BriefcaseIcon className="size-5" />
+          {currentUser.isAdmin ? <ShieldIcon className="size-5" /> : <BriefcaseIcon className="size-5" />}
         </span>
 
-        <MatterSwitcher />
+        {currentUser.isAdmin ? (
+          <div className="flex min-w-0 flex-col gap-0.5 px-1.5">
+            <span className="text-[11px] text-white/80 max-sm:hidden">{firm.name}</span>
+            <span className="truncate text-[15px] font-semibold text-white max-sm:text-sm">Admin Console</span>
+          </div>
+        ) : (
+          <MatterSwitcher />
+        )}
       </div>
 
       {/* Desktop: account dropdown. Mobile/tablet: menu button opens the drawer (sections + account) */}

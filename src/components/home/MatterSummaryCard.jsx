@@ -2,12 +2,12 @@ import Section from '../ui/Section'
 import StatusPill from '../ui/StatusPill'
 import { firm } from '../../data/sampleData'
 
-function MatterSummaryCard({ matter }) {
+function MatterSummaryCard({ matter, nextEvent }) {
   const facts = [
-    { label: 'Current stage', value: matter.stage },
-    { label: 'Responsible attorney', value: firm.attorney.name },
-    { label: 'Opened', value: matter.opened },
-    { label: 'Next event', value: matter.nextEvent },
+    { label: 'Current stage', value: matter.stage || '—' },
+    { label: 'Responsible attorney', value: matter.responsibleAttorney || firm.attorney.name },
+    { label: 'Opened', value: matter.opened || '—' },
+    { label: 'Next event', value: nextEvent ? `${nextEvent.month} ${nextEvent.day} · ${nextEvent.title}` : 'None scheduled' },
   ]
 
   return (
@@ -15,7 +15,7 @@ function MatterSummaryCard({ matter }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-semibold uppercase tracking-[0.06em] text-muted">Your matter</span>
-          <h2 id="matter-title" className="text-base font-semibold">{matter.number} · {matter.title}</h2>
+          <h2 id="matter-title" className="text-base font-semibold">{matter.label}</h2>
         </div>
         <StatusPill status={matter.status} size="md" dot />
       </div>

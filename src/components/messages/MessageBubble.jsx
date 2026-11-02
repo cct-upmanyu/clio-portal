@@ -32,7 +32,7 @@ function Attachment({ attachment }) {
 // One chat message. `firstOfRun` = first of consecutive messages from the same person,
 // which shows the avatar and name and adds space above.
 function MessageBubble({ message, firstOfRun }) {
-  const { fromMe, author, body, sentAt, attachment } = message
+  const { fromMe, author, body, sentAt, attachment, sending, failed, onRetry } = message
 
   return (
     <div className={`flex items-start gap-2 ${fromMe ? 'justify-end' : ''} ${firstOfRun ? 'mt-3' : ''}`}>
@@ -46,7 +46,13 @@ function MessageBubble({ message, firstOfRun }) {
         {!fromMe && firstOfRun && <span className="text-[13px] font-semibold">{author}</span>}
         {attachment && <Attachment attachment={attachment} />}
         {body && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{body}</p>}
-        <time dateTime={sentAt} className="self-end text-[11px] leading-none text-muted">{formatTime(sentAt)}</time>
+        {failed ? (
+          <button type="button" onClick={onRetry} className="cursor-pointer self-end text-[11px] font-medium leading-none text-danger hover:underline">
+            Not sent · Retry
+          </button>
+        ) : (
+          <time dateTime={sentAt} className="self-end text-[11px] leading-none text-muted">{sending ? 'Sending…' : formatTime(sentAt)}</time>
+        )}
       </div>
     </div>
   )

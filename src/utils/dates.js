@@ -1,32 +1,59 @@
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const startOfDay = (value) => {
-  const date = new Date(value)
-  date.setHours(0, 0, 0, 0)
-  return date
+// Times are shown in the signed-in user's time zone (users.timezone); undefined = the browser's own.
+// Set from the store whenever the user changes (see store.js).
+let displayTimeZone
+
+export function setDisplayTimeZone(timeZone) {
+  try {
+    if (timeZone) new Intl.DateTimeFormat('en-US', { timeZone })
+    displayTimeZone = timeZone || undefined
+  } catch {
+    displayTimeZone = undefined
+  }
+}
+
+export const getDisplayTimeZone = () => displayTimeZone
+
+const format = (value, options) => new Date(value).toLocaleString('en-US', { timeZone: displayTimeZone, ...options })
+
+// The calendar day of `value` in the display time zone, as a UTC midnight (so days subtract cleanly)
+const dayNumber = (value) => {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { timeZone: displayTimeZone, year: 'numeric', month: 'numeric', day: 'numeric' })
+      .formatToParts(new Date(value))
+      .map((p) => [p.type, Number(p.value)]),
+  )
+  return Date.UTC(parts.year, parts.month - 1, parts.day)
 }
 
 // Whole days from `value` to `now`: 0 = today, 1 = yesterday, -1 = tomorrow
 export const daysAgo = (value, now = new Date()) =>
-  Math.round((startOfDay(now) - startOfDay(value)) / DAY_MS)
+  Math.round((dayNumber(now) - dayNumber(value)) / DAY_MS)
 
-const sameYear = (value, now = new Date()) => new Date(value).getFullYear() === now.getFullYear()
+const sameYear = (value, now = new Date()) => format(value, { year: 'numeric' }) === format(now, { year: 'numeric' })
+
+// The hour (0-23) it is at `value` in the display time zone
+export const hourOf = (value = new Date()) => Number(format(value, { hour: 'numeric', hourCycle: 'h23' }))
 
 // "6:39 PM"
-export const formatTime = (value) =>
-  new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+export const formatTime = (value) => format(value, { hour: 'numeric', minute: '2-digit' })
+
+// "Nov 1, 2026, 4:02 PM": the full date and time, for records like a last sign-in
+export const formatDateTime = (value) =>
+  format(value, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 
 // "Oct 22" this year, "Oct 22, 2025" otherwise
 export const formatDate = (value, now = new Date()) =>
-  new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear(value, now) ? {} : { year: 'numeric' }) })
+  format(value, { month: 'short', day: 'numeric', ...(sameYear(value, now) ? {} : { year: 'numeric' }) })
 
 // Chat day separators, WhatsApp style: Today, Yesterday, weekday this week, then the date
 export function dayLabel(value, now = new Date()) {
   const diff = daysAgo(value, now)
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Yesterday'
-  if (diff > 1 && diff < 7) return new Date(value).toLocaleDateString('en-US', { weekday: 'long' })
-  return new Date(value).toLocaleDateString('en-US', {
+  if (diff > 1 && diff < 7) return format(value, { weekday: 'long' })
+  return format(value, {
     weekday: 'short', month: 'long', day: 'numeric', ...(sameYear(value, now) ? {} : { year: 'numeric' }),
   })
 }
@@ -43,10 +70,17 @@ export function formatShort(value, now = new Date()) {
 export function groupByDay(items, getDate) {
   const groups = []
   for (const item of items) {
-    const key = startOfDay(getDate(item)).toISOString()
+    const key = dayNumber(getDate(item))
     const last = groups[groups.length - 1]
     if (last?.key === key) last.items.push(item)
     else groups.push({ key, label: dayLabel(getDate(item)), items: [item] })
   }
   return groups
+}
+
+// A date-only value ("2026-10-20") as "Oct 20, 2026", without a time-zone shift
+export const formatDay = (value) => {
+  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number)
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value)
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }

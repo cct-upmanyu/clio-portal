@@ -1,6 +1,9 @@
 import { IoDocumentsOutline, IoHomeOutline } from 'react-icons/io5'
 import { LiaMoneyBillSolid } from 'react-icons/lia'
-import { LuListChecks, LuMessagesSquare } from 'react-icons/lu'
+import {
+  LuBriefcase, LuEllipsisVertical, LuLayoutDashboard, LuListChecks, LuMailPlus, LuMessagesSquare, LuPencil, LuSearch,
+  LuShieldOff, LuUserCheck, LuUserPlus, LuUserX, LuUsers,
+} from 'react-icons/lu'
 import { MdOutlineCalendarToday } from 'react-icons/md'
 
 // Stroke icons; size and color come from className (they use currentColor)
@@ -180,3 +183,14 @@ export const TaskIcon = (props) => <LuListChecks {...hidden} {...props} />
 export const DocumentsIcon = (props) => <IoDocumentsOutline {...hidden} {...props} />
 export const CalendarIcon = (props) => <MdOutlineCalendarToday {...hidden} {...props} />
 export const BillIcon = (props) => <LiaMoneyBillSolid {...hidden} {...props} />
+export const DashboardIcon = (props) => <LuLayoutDashboard {...hidden} {...props} />
+export const MattersIcon = (props) => <LuBriefcase {...hidden} {...props} />
+export const UsersIcon = (props) => <LuUsers {...hidden} {...props} />
+export const SearchIcon = (props) => <LuSearch {...hidden} {...props} />
+export const MoreIcon = (props) => <LuEllipsisVertical {...hidden} {...props} />
+export const UserPlusIcon = (props) => <LuUserPlus {...hidden} {...props} />
+export const UserCheckIcon = (props) => <LuUserCheck {...hidden} {...props} />
+export const UserXIcon = (props) => <LuUserX {...hidden} {...props} />
+export const ShieldOffIcon = (props) => <LuShieldOff {...hidden} {...props} />
+export const ResendIcon = (props) => <LuMailPlus {...hidden} {...props} />
+export const EditIcon = (props) => <LuPencil {...hidden} {...props} />

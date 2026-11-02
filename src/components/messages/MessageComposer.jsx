@@ -6,7 +6,7 @@ import { formatBytes } from '../../utils/files'
 const MAX_HEIGHT = 160
 
 // Text box + attachments. Enter sends, Shift+Enter adds a new line.
-function MessageComposer({ onSend }) {
+function MessageComposer({ onSend, allowAttachments = true }) {
   const [body, setBody] = useState('')
   const [files, setFiles] = useState([])
   const fileInputRef = useRef(null)
@@ -59,14 +59,16 @@ function MessageComposer({ onSend }) {
       )}
 
       <div className="flex items-end gap-1.5 rounded-xl border border-field bg-white p-1.5 focus-within:border-brand focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Attach files"
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-body hover:bg-subtle"
-        >
-          <PaperclipIcon className="size-[18px]" />
-        </button>
+        {allowAttachments && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach files"
+            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-body hover:bg-subtle"
+          >
+            <PaperclipIcon className="size-[18px]" />
+          </button>
+        )}
         <input
           ref={fileInputRef}
           type="file"

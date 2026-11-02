@@ -2,6 +2,9 @@ const STYLES = {
   Open: 'bg-success-soft text-success',
   Pending: 'bg-warning-soft text-warning',
   Closed: 'bg-subtle text-muted',
+  Active: 'bg-success-soft text-success',
+  Invited: 'bg-warning-soft text-warning',
+  Disabled: 'bg-danger-soft text-danger',
 }
 
 function StatusPill({ status, size = 'sm', dot = false }) {

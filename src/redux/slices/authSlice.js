@@ -22,6 +22,13 @@ const authSlice = createSlice({
       state.authCheckFailed = false;
       state.signOutReason = null;
     },
+    // Profile changes made while signed in (e.g. editing yourself in the Admin Console)
+    updateAuthUser(state, action) {
+      if (state.user) Object.assign(state.user, action.payload);
+    },
+    setSelectedMatterId(state, action) {
+      if (state.user) state.user.selectedMatterId = action.payload;
+    },
     setAuthCheckFailed(state) {
       state.authCheckFailed = true;
     },
@@ -46,5 +53,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthUser, clearAuth, setAuthCheckFailed, setAccessDenied, clearAccessDenied } = authSlice.actions;
+export const { setAuthUser, clearAuth, setAuthCheckFailed, setSelectedMatterId, updateAuthUser, setAccessDenied, clearAccessDenied } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import EmptyState from '../ui/EmptyState'
 import { InboxIcon } from '../ui/icons'
 import MessageBubble from './MessageBubble'
@@ -6,12 +6,10 @@ import MessageComposer from './MessageComposer'
 import { firm } from '../../data/sampleData'
 import { groupByDay } from '../../utils/dates'
 
-const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()))
-
 // Full-height conversation for one matter, grouped under day separators.
 // Fills AppLayout's content area and scrolls internally; the top bar already names the matter.
-function MessageThread({ matter }) {
-  const [messages, setMessages] = useState(matter.messages)
+// `title`: the screen-reader heading; the firm's side passes its own
+function MessageThread({ messages, onSend, title, allowAttachments = true }) {
   const scrollRef = useRef(null)
   const groups = groupByDay(messages, (m) => m.sentAt)
 
@@ -21,19 +19,9 @@ function MessageThread({ matter }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages.length])
 
-  const handleSend = ({ body, files }) => {
-    // TODO: POST the message (and upload attachments) to the backend
-    const sentAt = new Date().toISOString()
-    const base = { author: 'You', fromMe: true, sentAt }
-    const outgoing = files.length === 0
-      ? [{ ...base, id: newId(), body }]
-      : files.map((file, i) => ({ ...base, id: newId(), body: i === 0 ? body : '', attachment: { name: file.name, size: file.size, file } }))
-    setMessages((prev) => [...prev, ...outgoing])
-  }
-
   return (
     <section aria-labelledby="messages-title" className="flex min-h-0 flex-1 flex-col bg-white">
-      <h1 id="messages-title" className="sr-only">Messages with {firm.attorney.name} and the legal team</h1>
+      <h1 id="messages-title" className="sr-only">{title || `Messages with ${firm.attorney.name} and the legal team`}</h1>
 
       <div ref={scrollRef} role="log" aria-label="Conversation" className="min-h-0 flex-1 overflow-y-auto bg-canvas px-6 pb-4 max-sm:px-3">
         {groups.length === 0 ? (
@@ -62,7 +50,7 @@ function MessageThread({ matter }) {
         )}
       </div>
 
-      <MessageComposer onSend={handleSend} />
+      <MessageComposer onSend={onSend} allowAttachments={allowAttachments} />
     </section>
   )
 }

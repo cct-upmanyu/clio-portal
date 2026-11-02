@@ -3,13 +3,14 @@ import { toast } from './toast'
 const TITLES = {
   ACCOUNT_DISABLED: 'Your access has been disabled',
   ACCOUNT_NOT_ACTIVATED: 'Accept your invitation first',
+  NO_MATTERS: "You don't have any matters",
 }
 
 const DISABLED_MESSAGE = "Your access to the Client Portal has been disabled. Please contact your attorney's office for help."
 // Long enough to read the whole explanation
 const DURATION = 7000
 
-// When the error says the account can't sign in (disabled, invitation not accepted): shows it as a
+// When the error says the account can't sign in (disabled, invitation not accepted, no matters): shows it as a
 // toast and returns true. Otherwise returns false and shows nothing.
 export const toastAccountProblem = (err) => {
   const title = TITLES[err?.data?.code]
