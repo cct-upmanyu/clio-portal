@@ -4,23 +4,59 @@ import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
-import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon } from '../../components/ui/icons'
+import Avatar from '../../components/ui/Avatar'
+import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon, UsersIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
+import ActivityFeed from '../../components/activity/ActivityFeed'
 import MatterChat from '../../components/messages/MatterChat'
 import { useAdminMatters } from '../../hooks/useAdminMatters'
 import { useInviteUser } from '../../hooks/useInviteUser'
+import { useGetAdminMatterActivityInfiniteQuery } from '../../redux/api/activityApi'
 import { formatDay } from '../../utils/dates'
 
-const TABS = ['messages', 'tasks', 'events']
-const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events' }
+const TABS = ['messages', 'tasks', 'events', 'users', 'activity']
+const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events', users: 'Users', activity: 'Activity' }
 
-function ClientChip({ contact }) {
-  const accepted = contact.invitation === 'accepted'
+// The clients invited to the matter and whether they've accepted (only accepted ones can see it)
+function MatterUsers({ matter, onInvite }) {
+  if (matter.contacts.length === 0) {
+    return (
+      <div className="flex flex-col items-center pb-6">
+        <EmptyState icon={UsersIcon} title="No client invited yet">
+          Invite a client to give them access to this matter in the portal.
+        </EmptyState>
+        {matter.status !== 'Closed' && <Button icon={UserPlusIcon} onClick={onInvite}>Invite client</Button>}
+      </div>
+    )
+  }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white py-1 pl-2.5 pr-2 text-[13px]">
-      <span className="font-medium text-ink">{contact.name}</span>
-      <span className={accepted ? 'text-success' : 'text-warning'}>{accepted ? 'Accepted' : 'Invitation pending'}</span>
-    </span>
+    <ul aria-label="Clients on this matter" className="flex flex-col divide-y divide-divider">
+      {matter.contacts.map((contact) => {
+        const accepted = contact.invitation === 'accepted'
+        return (
+          <li key={contact.userId} className="flex items-center gap-3 py-3">
+            <Avatar name={contact.name} size="sm" />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-sm font-medium">{contact.name}</span>
+              <span className="text-[13px] text-muted">Client</span>
+            </span>
+            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${accepted ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`}>
+              {accepted ? 'Accepted' : 'Invitation pending'}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+// Everything that happened on the matter: invitations, acceptances, removals, documents… (firm view: all of it)
+function MatterActivity({ crmMatterId }) {
+  const activity = useGetAdminMatterActivityInfiniteQuery(crmMatterId, { refetchOnFocus: true })
+  return (
+    <div className="py-4">
+      <ActivityFeed result={activity} inMatter emptyText="Invitations, acceptances and other changes to this matter will show here." />
+    </div>
   )
 }
 
@@ -73,19 +109,12 @@ function MatterDetail() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] font-medium text-muted">Clients</span>
-          {matter.contacts.length > 0
-            ? matter.contacts.map((contact) => <ClientChip key={contact.userId} contact={contact} />)
-            : <span className="text-[13px] font-medium text-warning">No client invited yet</span>}
-        </div>
-
         <Tabs
           label="Matter sections"
           idPrefix="matter"
           value={tab}
           onChange={(id) => setSearchParams(id === 'messages' ? {} : { tab: id }, { replace: true })}
-          tabs={TABS.map((id) => ({ id, label: TAB_LABELS[id] }))}
+          tabs={TABS.map((id) => ({ id, label: TAB_LABELS[id], count: id === 'users' ? matter.contacts.length : undefined }))}
         />
       </div>
 
@@ -111,6 +140,8 @@ function MatterDetail() {
             {tab === 'events' && (
               <EmptyState icon={CalendarIcon} title="No upcoming events">Meetings, hearings and deadlines will show here once they sync from Zoho CRM.</EmptyState>
             )}
+            {tab === 'users' && <MatterUsers matter={matter} onInvite={() => openInvite(matter.crmMatterId)} />}
+            {tab === 'activity' && <MatterActivity crmMatterId={matter.crmMatterId} />}
           </TabPanel>
         </div>
       )}

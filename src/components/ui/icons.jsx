@@ -1,7 +1,7 @@
 import { IoDocumentsOutline, IoHomeOutline } from 'react-icons/io5'
 import { LiaMoneyBillSolid } from 'react-icons/lia'
 import {
-  LuBriefcase, LuEllipsisVertical, LuLayoutDashboard, LuListChecks, LuMailPlus, LuMessagesSquare, LuPencil, LuSearch,
+  LuBriefcase, LuEllipsisVertical, LuHistory, LuLayoutDashboard, LuListChecks, LuMailPlus, LuMessagesSquare, LuPencil, LuSearch,
   LuShieldOff, LuUserCheck, LuUserPlus, LuUserX, LuUsers,
 } from 'react-icons/lu'
 import { MdOutlineCalendarToday } from 'react-icons/md'
@@ -179,6 +179,7 @@ const hidden = { 'aria-hidden': true, focusable: false }
 
 export const HomeIcon = (props) => <IoHomeOutline {...hidden} {...props} />
 export const MessageIcon = (props) => <LuMessagesSquare {...hidden} {...props} />
+export const TimelineIcon = (props) => <LuHistory {...hidden} {...props} />
 export const TaskIcon = (props) => <LuListChecks {...hidden} {...props} />
 export const DocumentsIcon = (props) => <IoDocumentsOutline {...hidden} {...props} />
 export const CalendarIcon = (props) => <MdOutlineCalendarToday {...hidden} {...props} />

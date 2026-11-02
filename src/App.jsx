@@ -11,6 +11,7 @@ import Messages from './pages/Messages.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Documents from './pages/Documents.jsx'
 import Events from './pages/Events.jsx'
+import Timeline from './pages/Timeline.jsx'
 import Bills from './pages/Bills.jsx'
 import Settings from './pages/settings/Settings.jsx'
 import SecuritySettings from './pages/settings/SecuritySettings.jsx'
@@ -37,6 +38,7 @@ function App() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/timeline" element={<Timeline />} />
             <Route path="/bills" element={<Bills />} />
           </Route>
           <Route element={<PortalOnly portal="admin" />}>

@@ -8,7 +8,7 @@ import PageHeader from '../../components/ui/PageHeader'
 import Section from '../../components/ui/Section'
 import SectionHeader from '../../components/ui/SectionHeader'
 import {
-  CheckCircleIcon, InboxIcon, InviteIcon, MattersIcon, ResendIcon, ShieldIcon, UserPlusIcon, UsersIcon, UserXIcon,
+  InboxIcon, InviteIcon, MattersIcon, ResendIcon, ShieldIcon, UserPlusIcon, UsersIcon,
 } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
 import StatTile from '../../components/admin/StatTile'
@@ -17,12 +17,13 @@ import { adminActions, useAdminData } from '../../hooks/useAdminData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { useInviteUser } from '../../hooks/useInviteUser'
 import { useGetAdminDashboardQuery } from '../../redux/api/adminApi'
+import { useGetFirmActivityInfiniteQuery } from '../../redux/api/activityApi'
+import ActivityFeed from '../../components/activity/ActivityFeed'
 import { greeting } from '../../utils/greeting'
 import { formatShort } from '../../utils/dates'
 import { toast } from '../../utils/toast'
 
 const CLIENT_ROLE = ROLES.find((role) => role.name === 'Client').id
-const ACTIVITY_ICONS = { accepted: CheckCircleIcon, invited: InviteIcon, mfa: ShieldIcon, disabled: UserXIcon, enabled: UsersIcon }
 const PREVIEW = 5
 
 function ResendButton({ user }) {
@@ -87,7 +88,8 @@ function UnreadMessages() {
 
 function AdminDashboard() {
   const { firstName } = useCurrentUser()
-  const { users, matters, activity } = useAdminData()
+  const { users, matters } = useAdminData()
+  const activity = useGetFirmActivityInfiniteQuery({ perPage: 50 }, { refetchOnFocus: true })
   const { inviteOpen, inviteCrmMatterId, openInvite, closeInvite, invite } = useInviteUser()
 
   const count = (list, fn) => list.filter(fn).length
@@ -192,26 +194,8 @@ function AdminDashboard() {
         <div className="flex min-w-0 flex-col">
           <Section>
             <SectionHeader title="Recent activity" />
-            {activity.length > 0 ? (
-              <ul className="flex flex-col gap-4 pt-1">
-                {activity.slice(0, 8).map((item) => {
-                  const Icon = ACTIVITY_ICONS[item.kind] ?? CheckCircleIcon
-                  return (
-                    <li key={item.id} className="flex gap-3">
-                      <span aria-hidden="true" className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-subtle text-body">
-                        <Icon className="size-3.5" />
-                      </span>
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-[13px] leading-normal text-ink">{item.text}</span>
-                        <span className="text-xs text-muted">{formatShort(item.at)}</span>
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <EmptyState title="Nothing yet">Invitations, sign-in changes and access changes will show here.</EmptyState>
-            )}
+            {/* The latest 50 events across the firm; each matter's Timeline tab has its full history */}
+            <ActivityFeed result={activity} loadMore={false} />
           </Section>
         </div>
       </div>

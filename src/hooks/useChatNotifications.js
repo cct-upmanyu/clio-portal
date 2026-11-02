@@ -21,15 +21,19 @@ export function useChatNotifications() {
     }
     // Admin dashboards: a client wrote, or someone at the firm read a matter's messages
     const onFirmUnread = () => dispatch(baseApi.util.invalidateTags(['AdminDashboard']))
+    // Firm users: something was recorded on a timeline
+    const onActivity = () => dispatch(baseApi.util.invalidateTags(['Activity']))
     // Back after a drop: anything that arrived meanwhile only shows in fresh counts
-    const onReconnect = () => dispatch(baseApi.util.invalidateTags(['Matters', 'AdminDashboard']))
+    const onReconnect = () => dispatch(baseApi.util.invalidateTags(['Matters', 'AdminDashboard', 'Activity']))
 
     socket.on('unread', onUnread)
     socket.on('firm-unread', onFirmUnread)
+    socket.on('activity', onActivity)
     socket.io.on('reconnect', onReconnect)
     return () => {
       socket.off('unread', onUnread)
       socket.off('firm-unread', onFirmUnread)
+      socket.off('activity', onActivity)
       socket.io.off('reconnect', onReconnect)
     }
   }, [signedIn, dispatch])

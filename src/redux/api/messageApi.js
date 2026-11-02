@@ -2,12 +2,13 @@ import { baseApi } from "./baseApi";
 
 export const messageApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // Newest 100, oldest first; polled so staff replies from Zoho CRM show up
+    // The newest 100, oldest first; new ones arrive over the socket (useMatterChat)
     getMessages: builder.query({
-      query: (crmMatterId) => `/messages/matters/${crmMatterId}/messages?limit=100`,
+      query: (crmMatterId) => `/messages/matters/${crmMatterId}/messages?per_page=100`,
       // { messages, firmReadAt, contactReads }: the read times are for read receipts; contactReads (who
       // among the clients has read) only comes to firm users
-      transformResponse: ({ data }) => ({ messages: data.messages, firmReadAt: data.firmReadAt ?? null, contactReads: data.contactReads ?? null }),
+      // info: { per_page, count, more_records }: more_records = older messages exist beyond this page
+      transformResponse: ({ data }) => ({ messages: data.messages, firmReadAt: data.firmReadAt ?? null, contactReads: data.contactReads ?? null, info: data.info ?? null }),
       providesTags: (result, error, crmMatterId) => [{ type: "Messages", id: crmMatterId }],
     }),
     sendMessage: builder.mutation({
