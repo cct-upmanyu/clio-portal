@@ -1,6 +1,7 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
+import MultiSelect from '../ui/MultiSelect'
 import { TaskIcon } from '../ui/icons'
 import { inputClass, inputErrorClass, labelClass } from '../auth/styles'
 
@@ -37,20 +38,19 @@ function TaskDialog({ open, task, clients, onSave, onClose }) {
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
 
+  // Filled only when the dialog opens: refills while it's open (e.g. as the task list re-renders during
+  // the save) would wipe what's typed. It stays filled until the save succeeds and the dialog closes.
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (!open) return
-    // A new task on a matter with one client is for them
-    setForm(task ? fromTask(task) : { ...emptyForm, assigneeIds: clients.length === 1 ? [clients[0].userId] : [] })
-    setErrors({})
+    if (open && !wasOpen.current) {
+      // A new task on a matter with one client is for them
+      setForm(task ? fromTask(task) : { ...emptyForm, assigneeIds: clients.length === 1 ? [clients[0].userId] : [] })
+      setErrors({})
+    }
+    wasOpen.current = open
   }, [open, task, clients])
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
-  const allChosen = clients.length > 0 && clients.every((c) => form.assigneeIds.includes(c.userId))
-  const toggle = (userId) => setForm((prev) => ({
-    ...prev,
-    assigneeIds: prev.assigneeIds.includes(userId) ? prev.assigneeIds.filter((x) => x !== userId) : [...prev.assigneeIds, userId],
-  }))
-  const toggleAll = () => setForm((prev) => ({ ...prev, assigneeIds: allChosen ? [] : clients.map((c) => c.userId) }))
 
   const fieldProps = (key) => ({
     id: `${id}-${key}`,
@@ -104,6 +104,23 @@ function TaskDialog({ open, task, clients, onSave, onClose }) {
         <Field id={`${id}-subject`} label="Subject" error={errors.subject}>
           <input type="text" maxLength={255} autoComplete="off" {...fieldProps('subject')} />
         </Field>
+        <Field id={`${id}-assignees`} label="Assign to" error={errors.assigneeIds}>
+          {clients.length === 0 ? (
+            <p className="text-[13px] text-muted">No client has accepted this matter yet. Tasks can be assigned once one has.</p>
+          ) : (
+            <MultiSelect
+              id={`${id}-assignees`}
+              label="Assign to"
+              options={clients.map((c) => ({ value: c.userId, label: c.name }))}
+              value={form.assigneeIds}
+              onChange={(assigneeIds) => setForm((prev) => ({ ...prev, assigneeIds }))}
+              placeholder="Choose clients"
+              allLabel="All clients on this matter"
+              invalid={Boolean(errors.assigneeIds)}
+              describedBy={errors.assigneeIds ? `${id}-assignees-error` : undefined}
+            />
+          )}
+        </Field>
         <Field id={`${id}-description`} label="Details (optional)" error={errors.description}>
           <textarea rows={3} maxLength={5000} {...fieldProps('description')} className={`${fieldProps('description').className} min-h-20 py-2`} />
         </Field>
@@ -118,28 +135,6 @@ function TaskDialog({ open, task, clients, onSave, onClose }) {
           </Field>
         </div>
 
-        <fieldset className="flex flex-col gap-2" aria-describedby={errors.assigneeIds ? `${id}-assignees-error` : undefined}>
-          <legend className={`${labelClass} mb-1.5`}>Assign to</legend>
-          {clients.length === 0 ? (
-            <p className="text-[13px] text-muted">No client has accepted this matter yet. Tasks can be assigned once one has.</p>
-          ) : (
-            <>
-              {clients.length > 1 && (
-                <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm font-medium">
-                  <input type="checkbox" checked={allChosen} onChange={toggleAll} className="size-4 accent-brand" />
-                  All clients on this matter
-                </label>
-              )}
-              {clients.map((client) => (
-                <label key={client.userId} className={`flex w-fit cursor-pointer items-center gap-2.5 text-sm ${clients.length > 1 ? 'pl-6' : ''}`}>
-                  <input type="checkbox" checked={form.assigneeIds.includes(client.userId)} onChange={() => toggle(client.userId)} className="size-4 accent-brand" />
-                  {client.name}
-                </label>
-              ))}
-            </>
-          )}
-          {errors.assigneeIds && <p id={`${id}-assignees-error`} className="text-[13px] text-danger">{errors.assigneeIds}</p>}
-        </fieldset>
       </form>
     </Modal>
   )

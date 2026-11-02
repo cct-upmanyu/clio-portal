@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
-import { CalendarIcon, ChevronLeftIcon, RefreshIcon, UserPlusIcon } from '../../components/ui/icons'
+import { CalendarIcon, ChevronLeftIcon, PlusIcon, RefreshIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
 import MatterTasks from '../../components/admin/MatterTasks'
 import MatterUsers from '../../components/admin/MatterUsers'
@@ -33,6 +34,7 @@ function MatterDetail() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { matters, isLoading, refetch, isFetching } = useAdminMatters()
   const { inviteOpen, openInvite, closeInvite, invite } = useInviteUser()
+  const [creatingTask, setCreatingTask] = useState(false)
 
   if (isLoading) {
     return (
@@ -47,6 +49,17 @@ function MatterDetail() {
   const tab = TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
   const label = `${matter.number} · ${matter.name}`
   const hasAcceptedClient = matter.contacts.some((c) => c.invitation === 'accepted')
+
+  // The header's + adds to the open tab (Communication and Activity have nothing to add; events aren't built yet)
+  const closed = matter.status === 'Closed'
+  const addAction = {
+    users: { label: 'Invite client', onClick: () => openInvite(matter.crmMatterId), disabledReason: closed ? 'This matter is closed' : null },
+    tasks: {
+      label: 'New task',
+      onClick: () => setCreatingTask(true),
+      disabledReason: closed ? 'This matter is closed' : !hasAcceptedClient ? 'A client needs to accept this matter first' : null,
+    },
+  }[tab]
 
   return (
     <Page scroll={false}>
@@ -75,10 +88,17 @@ function MatterDetail() {
             <Button variant="secondary" icon={RefreshIcon} loading={isFetching} onClick={refetch} aria-label="Refresh" className="max-sm:size-9 max-sm:px-0">
               <span className="max-sm:sr-only">{isFetching ? 'Refreshing…' : 'Refresh'}</span>
             </Button>
-            {matter.status !== 'Closed' && (
-              <Button icon={UserPlusIcon} onClick={() => openInvite(matter.crmMatterId)} aria-label="Invite client" className="max-sm:size-9 max-sm:px-0">
-                <span className="max-sm:sr-only">Invite client</span>
-              </Button>
+            {addAction && (
+              <button
+                type="button"
+                onClick={addAction.onClick}
+                disabled={Boolean(addAction.disabledReason)}
+                aria-label={addAction.label}
+                title={addAction.disabledReason || addAction.label}
+                className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50 max-sm:size-9"
+              >
+                <PlusIcon className="size-5" />
+              </button>
             )}
           </div>
         </div>
@@ -108,7 +128,7 @@ function MatterDetail() {
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-2 max-sm:px-3">
           <TabPanel id={tab} idPrefix="matter">
-            {tab === 'tasks' && <MatterTasks matter={matter} />}
+            {tab === 'tasks' && <MatterTasks matter={matter} creating={creatingTask} onCreatingChange={setCreatingTask} />}
             {tab === 'events' && (
               <EmptyState icon={CalendarIcon} title="No upcoming events">Meetings, hearings and deadlines will show here once they sync from Zoho CRM.</EmptyState>
             )}

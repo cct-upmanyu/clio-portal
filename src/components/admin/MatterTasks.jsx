@@ -107,8 +107,9 @@ function TaskItem({ task, onEdit, onComplete, onReopen, onCancel }) {
   )
 }
 
-// A matter's tasks for the firm: create them for its clients, edit, complete for them, reopen, cancel
-function MatterTasks({ matter }) {
+// A matter's tasks for the firm: create them for its clients, edit, complete for them, reopen, cancel.
+// `creating` / `onCreatingChange`: the new-task dialog, opened by the page header's + button.
+function MatterTasks({ matter, creating, onCreatingChange }) {
   const { data: tasks = [], isLoading, isError, refetch } = useGetMatterTasksQuery(matter.crmMatterId, { refetchOnFocus: true })
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
@@ -127,14 +128,15 @@ function MatterTasks({ matter }) {
 
   const save = async (body) => {
     try {
-      if (dialog.task) await updateTask({ taskId: dialog.task.id, ...body }).unwrap()
+      const editing = !creating && dialog.task
+      if (editing) await updateTask({ taskId: dialog.task.id, ...body }).unwrap()
       else await createTask({ crmMatterId: matter.crmMatterId, ...body }).unwrap()
-      toast.success(dialog.task ? 'Task updated' : 'Task created', { description: body.subject })
+      toast.success(editing ? 'Task updated' : 'Task created', { description: body.subject })
       return { saved: true }
     } catch (err) {
       const details = err?.data?.details
       if (details && typeof details === 'object' && Object.keys(details).length > 0) return { saved: false, fieldErrors: details }
-      failed(dialog.task ? "Couldn't update the task" : "Couldn't create the task")(err)
+      failed(!creating && dialog.task ? "Couldn't update the task" : "Couldn't create the task")(err)
       return { saved: false }
     }
   }
@@ -152,18 +154,8 @@ function MatterTasks({ matter }) {
     })
     .catch(failed("Couldn't cancel the task"))
 
-  const canAdd = matter.status !== 'Closed'
-
   return (
     <div className="flex flex-col gap-2 py-2">
-      {canAdd && (
-        <div className="flex justify-end max-sm:[&>*]:w-full">
-          <Button icon={TaskIcon} onClick={() => setDialog({ open: true, task: null })} disabled={clients.length === 0}
-            title={clients.length === 0 ? 'A client needs to accept this matter first' : undefined}>
-            New task
-          </Button>
-        </div>
-      )}
 
       {isLoading ? (
         <p className="py-6 text-center text-sm text-muted">Loading tasks…</p>
@@ -176,7 +168,7 @@ function MatterTasks({ matter }) {
         <EmptyState icon={TaskIcon} title="No tasks">
           {clients.length === 0
             ? 'Once a client accepts this matter, you can give them tasks here.'
-            : 'Create a task to ask the client for something, like signing a document or sending a file.'}
+            : 'Use the + button above to ask a client for something, like signing a document or sending a file.'}
         </EmptyState>
       ) : (
         <ul aria-label="Tasks" className="flex flex-col divide-y divide-divider">
@@ -193,7 +185,16 @@ function MatterTasks({ matter }) {
         </ul>
       )}
 
-      <TaskDialog open={dialog.open} task={dialog.task} clients={clients} onSave={save} onClose={() => setDialog({ open: false, task: null })} />
+      <TaskDialog
+        open={dialog.open || creating}
+        task={creating ? null : dialog.task}
+        clients={clients}
+        onSave={save}
+        onClose={() => {
+          setDialog({ open: false, task: null })
+          onCreatingChange(false)
+        }}
+      />
       <ConfirmDialog
         open={Boolean(cancelTarget)}
         icon={UserXIcon}
