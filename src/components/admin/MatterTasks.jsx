@@ -9,6 +9,7 @@ import { isHandledGlobally } from '../../redux/api/baseApi'
 import {
   useCancelTaskMutation, useCompleteTaskMutation, useCreateTaskMutation, useGetMatterTasksQuery, useReopenTaskMutation, useUpdateTaskMutation,
 } from '../../redux/api/taskApi'
+import { formatDateTime, formatDay } from '../../utils/dates'
 import { sortTasks, taskStatus } from '../../utils/tasks'
 import { toast } from '../../utils/toast'
 
@@ -21,13 +22,17 @@ const PRIORITY_PILL = {
   Highest: 'bg-danger-soft text-danger', High: 'bg-warning-soft text-warning', Normal: '', Low: 'bg-subtle text-muted', Lowest: 'bg-subtle text-muted',
 }
 
+// Inline after the subject: each assignee with ✓ (done) or ○ (not yet)
 function Assignees({ assignees }) {
   return (
-    <span className="flex flex-wrap gap-1.5">
+    <span className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs text-muted">Assigned to</span>
       {assignees.map((a) => (
         <span
           key={a.userId}
-          title={a.status === 'completed' ? `Done${a.completedBy ? ` (marked by ${a.completedBy})` : ''}` : 'Not done yet'}
+          title={a.status === 'completed'
+            ? `Done ${a.completedAt ? formatDateTime(a.completedAt) : ''}${a.completedBy ? ` (marked by ${a.completedBy})` : ''}`.trim()
+            : 'Not done yet'}
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${a.status === 'completed' ? 'border-success-soft bg-success-soft text-success' : 'border-line bg-white text-body'}`}
         >
           {a.status === 'completed' ? <CheckCircleIcon className="size-3" /> : <CircleIcon className="size-3" />}
@@ -38,6 +43,22 @@ function Assignees({ assignees }) {
   )
 }
 
+// "Created by David Smith on Nov 2 · Updated by Ada Lee · Completed Nov 4, 3:10 PM by Jane Doe · From Zoho CRM"
+function history(task, doneCount) {
+  const parts = []
+  const created = task.createdAt ? ` on ${formatDay(task.createdAt)}` : ''
+  parts.push(task.assignedBy ? `Created by ${task.assignedBy}${created}` : `Created${created}`)
+  if (task.updatedBy) parts.push(`Updated by ${task.updatedBy}`)
+  if (task.status === 'completed' && task.completedAt) {
+    parts.push(`Completed ${formatDateTime(task.completedAt)}${task.completedBy ? ` by ${task.completedBy}` : ''}`)
+  } else if (task.assignees.length > 1) {
+    parts.push(`${doneCount} of ${task.assignees.length} done`)
+  }
+  if (task.source === 'crm') parts.push('From Zoho CRM')
+  return parts.join(' · ')
+}
+
+// Line 1: status, subject, who it's assigned to … priority, due, actions. Line 2: details. Line 3: history.
 function TaskItem({ task, onEdit, onComplete, onReopen, onCancel }) {
   const { tone, label } = taskStatus(task)
   const { icon: Icon, iconClass, pill } = TONES[tone]
@@ -58,25 +79,30 @@ function TaskItem({ task, onEdit, onComplete, onReopen, onCancel }) {
       { label: 'Cancel task', icon: UserXIcon, tone: 'danger', onSelect: () => onCancel(task) },
     ]
 
+  const badges = (
+    <>
+      {PRIORITY_PILL[task.priority] && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${PRIORITY_PILL[task.priority]}`}>{task.priority}</span>}
+      <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${pill}`}>{tone === 'completed' ? 'Completed' : label}</span>
+    </>
+  )
+
   return (
-    <li className="flex items-start gap-3 py-3.5">
-      <Icon className={`mt-px size-5 shrink-0 ${iconClass}`} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`text-sm font-medium ${tone === 'completed' ? 'text-muted' : ''}`}>{task.title}</span>
-          {PRIORITY_PILL[task.priority] && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${PRIORITY_PILL[task.priority]}`}>{task.priority}</span>}
+    <li className="flex items-start gap-3 py-3.5 max-sm:gap-2.5">
+      <Icon className={`mt-0.5 size-5 shrink-0 ${iconClass}`} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className={`text-sm font-semibold ${tone === 'completed' ? 'text-muted line-through decoration-1' : 'text-ink'}`}>{task.title}</span>
+          <Assignees assignees={task.assignees} />
         </div>
-        {task.description && <span className="whitespace-pre-wrap text-[13px] leading-normal text-muted">{task.description}</span>}
-        <Assignees assignees={task.assignees} />
-        <span className="text-xs text-muted">
-          {task.assignees.length > 1 ? `${doneCount} of ${task.assignees.length} done` : ''}
-          {task.assignees.length > 1 && task.assignedBy ? ' · ' : ''}
-          {task.assignedBy ? `Assigned by ${task.assignedBy}` : ''}
-          {task.source === 'crm' ? ' · From Zoho CRM' : ''}
-        </span>
+        {/* Phones: priority and due go under the subject instead of squeezing it */}
+        <span className="flex flex-wrap items-center gap-2 sm:hidden">{badges}</span>
+        {task.description && <p className="whitespace-pre-wrap text-[13px] leading-normal text-body">{task.description}</p>}
+        <p className="text-xs text-muted">{history(task, doneCount)}</p>
       </div>
-      <span className={`shrink-0 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${pill}`}>{label}</span>
-      <RowMenu label={`Actions for ${task.title}`} items={items} />
+      <span className="flex shrink-0 items-center gap-2 self-start">
+        <span className="flex items-center gap-2 max-sm:hidden">{badges}</span>
+        <RowMenu label={`Actions for ${task.title}`} items={items} />
+      </span>
     </li>
   )
 }
@@ -131,7 +157,7 @@ function MatterTasks({ matter }) {
   return (
     <div className="flex flex-col gap-2 py-2">
       {canAdd && (
-        <div className="flex justify-end">
+        <div className="flex justify-end max-sm:[&>*]:w-full">
           <Button icon={TaskIcon} onClick={() => setDialog({ open: true, task: null })} disabled={clients.length === 0}
             title={clients.length === 0 ? 'A client needs to accept this matter first' : undefined}>
             New task

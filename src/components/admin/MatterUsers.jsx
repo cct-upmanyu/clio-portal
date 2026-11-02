@@ -41,16 +41,18 @@ function ContactRow({ contact, actions, busy }) {
   const badge = BADGES[contact.invitation] ?? BADGES.pending
   const removed = contact.invitation === 'removed'
   return (
-    <li className={`flex items-center gap-3 py-3 ${removed ? 'opacity-70' : ''}`}>
+    <li className={`flex items-center gap-3 py-3 max-sm:items-start max-sm:gap-2.5 ${removed ? 'opacity-70' : ''}`}>
       <Avatar name={contact.name} size="sm" />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span className="truncate text-sm font-medium">{contact.name}</span>
-          {contact.email && <span className="truncate text-[13px] text-muted">{contact.email}</span>}
+          {contact.email && <span className="min-w-0 truncate text-[13px] text-muted max-sm:basis-full max-sm:text-xs">{contact.email}</span>}
         </span>
-        <span className="text-[13px] text-muted">{history(contact)}</span>
+        {/* Phones: the status goes under the name instead of squeezing it */}
+        <span className={`w-fit rounded-full px-2.5 py-0.5 text-xs font-medium sm:hidden ${badge.className}`}>{busy ? 'Sending…' : badge.label}</span>
+        <span className="text-[13px] text-muted max-sm:text-xs">{history(contact)}</span>
       </span>
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{busy ? 'Sending…' : badge.label}</span>
+      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium max-sm:hidden ${badge.className}`}>{busy ? 'Sending…' : badge.label}</span>
       {actions}
     </li>
   )

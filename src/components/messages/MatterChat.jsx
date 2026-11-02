@@ -35,20 +35,25 @@ const typingLine = (users) => {
 }
 
 // Who else has this chat open. The client sees the legal team; the firm sees the clients and colleagues.
+// Phones: one line that scrolls sideways (no wrapping), shorter wording, so the conversation keeps the screen
 function OnlineBar({ online, connected, viewer }) {
   const roleLabel = (user) => (user.role === 'staff' ? (viewer === 'client' ? 'Legal team' : 'Staff') : 'Client')
   return (
-    <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-white px-6 py-2 text-[13px] max-sm:px-3">
+    <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-white px-6 py-2 text-[13px] max-sm:min-h-8 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-3 max-sm:py-1.5 max-sm:text-xs max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
       {!connected ? (
         <span className="text-muted">Connecting…</span>
       ) : online.length === 0 ? (
-        <span className="text-muted">{viewer === 'client' ? 'Your legal team isn\'t online right now. They\'ll see your messages when they are.' : 'No one else has this chat open.'}</span>
+        <span className="text-muted max-sm:truncate">
+          {viewer === 'client'
+            ? <>Your legal team isn&apos;t online right now.<span className="max-sm:hidden"> They&apos;ll see your messages when they are.</span></>
+            : 'No one else has this chat open.'}
+        </span>
       ) : (
         online.map((user) => (
-          <span key={user.id} className="inline-flex items-center gap-1.5">
+          <span key={user.id} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
             <span aria-hidden="true" className="size-2 rounded-full bg-success" />
             <span className="font-medium text-ink">{nameOf(user) || roleLabel(user)}</span>
-            <span className="text-muted">{roleLabel(user)} · Online</span>
+            <span className="text-muted">{roleLabel(user)}<span className="max-sm:hidden"> · Online</span></span>
           </span>
         ))
       )}
