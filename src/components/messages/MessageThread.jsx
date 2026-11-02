@@ -21,11 +21,14 @@ function MessageThread({ messages, onSend, onTyping, title, header, typingText, 
   }, [messages.length])
 
   return (
-    <section aria-labelledby="messages-title" className="flex min-h-0 flex-1 flex-col bg-white">
+    <section aria-labelledby="messages-title" className="relative flex min-h-0 flex-1 flex-col bg-white">
       <h1 id="messages-title" className="sr-only">{title || `Messages with ${firm.attorney.name} and the legal team`}</h1>
       {header}
 
-      <div ref={scrollRef} role="log" aria-label="Conversation" className="min-h-0 flex-1 overflow-y-auto bg-canvas px-6 pb-4 max-sm:px-3">
+      {/* `relative`: screen-reader-only labels in the bubbles are absolutely positioned; without a positioned
+          ancestor they'd be placed against the page and make it taller than the window, so the whole
+          page would scroll. `overscroll-contain`: scrolling past the conversation's end stays here. */}
+      <div ref={scrollRef} role="log" aria-label="Conversation" className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas px-6 pb-4 max-sm:px-3">
         {groups.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <EmptyState icon={InboxIcon} title="No messages yet">
