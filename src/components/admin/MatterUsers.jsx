@@ -3,9 +3,10 @@ import Avatar from '../ui/Avatar'
 import Button from '../ui/Button'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import EmptyState from '../ui/EmptyState'
-import { UserPlusIcon, UsersIcon, UserXIcon } from '../ui/icons'
+import { ResendIcon, UserPlusIcon, UsersIcon, UserXIcon } from '../ui/icons'
 import RowMenu from './RowMenu'
-import { useRemoveMatterContactMutation } from '../../redux/api/adminApi'
+import { useInviteUser } from '../../hooks/useInviteUser'
+import { useGetAdminUsersQuery, useRemoveMatterContactMutation } from '../../redux/api/adminApi'
 import { formatDateTime, formatDay } from '../../utils/dates'
 import { toast } from '../../utils/toast'
 
@@ -36,7 +37,7 @@ function history(contact) {
   return parts.join(' · ')
 }
 
-function ContactRow({ contact, actions }) {
+function ContactRow({ contact, actions, busy }) {
   const badge = BADGES[contact.invitation] ?? BADGES.pending
   const removed = contact.invitation === 'removed'
   return (
@@ -49,7 +50,7 @@ function ContactRow({ contact, actions }) {
         </span>
         <span className="text-[13px] text-muted">{history(contact)}</span>
       </span>
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
+      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{busy ? 'Sending…' : badge.label}</span>
       {actions}
     </li>
   )
@@ -61,6 +62,41 @@ function MatterUsers({ matter, onInvite }) {
   const [removeContact, { isLoading: removing }] = useRemoveMatterContactMutation()
   const [confirming, setConfirming] = useState(null)
   const canInvite = matter.status !== 'Closed'
+
+  // Re-invite / resend: the same invitation as the invite dialog sends, filled from what's already on
+  // file for them, so nothing has to be typed again. An active client gets a "new matter" email; someone
+  // who never activated their account gets a fresh account invitation.
+  const { data: usersData } = useGetAdminUsersQuery()
+  const { invite } = useInviteUser()
+  const [sendingTo, setSendingTo] = useState(null)
+  const reinvite = async (contact) => {
+    const user = usersData?.users.find((u) => String(u.id) === contact.userId)
+    if (!user) {
+      toast.error("Couldn't find this person's details", { description: 'Use Invite client instead.' })
+      return
+    }
+    setSendingTo(contact.userId)
+    try {
+      await invite({
+        email: user.email,
+        ...(user.salutation ? { salutation: user.salutation } : {}),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        timezone: user.timezone || usersData.defaultTimezone,
+        mfaRequired: user.mfaRequired,
+        crmMatterId: matter.crmMatterId,
+      })
+    } finally {
+      setSendingTo(null)
+    }
+  }
+  const actionsFor = (contact) => [
+    ...(contact.invitation !== 'accepted' && canInvite
+      ? [{ label: 'Resend invitation', icon: ResendIcon, onSelect: () => reinvite(contact) }]
+      : []),
+    { label: 'Remove from this matter', icon: UserXIcon, tone: 'danger', onSelect: () => setConfirming(contact) },
+  ]
 
   const remove = async () => {
     try {
@@ -87,12 +123,8 @@ function MatterUsers({ matter, onInvite }) {
             <ContactRow
               key={contact.userId}
               contact={contact}
-              actions={(
-                <RowMenu
-                  label={`Actions for ${contact.name}`}
-                  items={[{ label: 'Remove from this matter', icon: UserXIcon, tone: 'danger', onSelect: () => setConfirming(contact) }]}
-                />
-              )}
+              busy={sendingTo === contact.userId}
+              actions={<RowMenu label={`Actions for ${contact.name}`} items={actionsFor(contact)} />}
             />
           ))}
         </ul>
@@ -103,7 +135,17 @@ function MatterUsers({ matter, onInvite }) {
           <h2 id="removed-clients" className="border-b border-divider pb-2 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Removed</h2>
           <ul className="flex flex-col divide-y divide-divider">
             {matter.removedContacts.map((contact) => (
-              <ContactRow key={contact.userId} contact={contact} actions={<span className="size-9 shrink-0" />} />
+              <ContactRow
+                key={contact.userId}
+                contact={contact}
+                busy={sendingTo === contact.userId}
+                actions={(
+                  <RowMenu
+                    label={`Actions for ${contact.name}`}
+                    items={canInvite ? [{ label: 'Re-invite to this matter', icon: ResendIcon, onSelect: () => reinvite(contact) }] : []}
+                  />
+                )}
+              />
             ))}
           </ul>
         </section>

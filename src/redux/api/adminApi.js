@@ -43,7 +43,7 @@ export const adminApi = baseApi.injectEndpoints({
     inviteUser: builder.mutation({
       query: (body) => ({ url: "/auth/invitations", method: "POST", body }),
       transformResponse: (response) => response.data,
-      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "AdminMatters"]),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "AdminMatters", "Activity"]),
     }),
     // Takes a client off a matter (admins only). Their messages and history on it stay.
     removeMatterContact: builder.mutation({
