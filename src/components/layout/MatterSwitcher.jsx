@@ -54,7 +54,7 @@ function MatterSwitcher() {
             </span>
           )}
           {otherUnread && (
-            <span className="size-2 shrink-0 rounded-full bg-[#FDB022]">
+            <span className="size-2 shrink-0 rounded-full bg-red-600 ring-2 ring-white">
               <span className="sr-only">New messages in another matter</span>
             </span>
           )}
@@ -86,7 +86,7 @@ function MatterSwitcher() {
                   <span className="truncate text-xs text-muted">{matter.firmName || firm.name}</span>
                 </span>
                 {unread > 0 && (
-                  <span className="shrink-0 rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-[18px] text-white">
+                  <span className="shrink-0 rounded-full bg-red-600 px-1.5 text-[11px] font-semibold leading-[18px] text-white">
                     {unread > 99 ? '99+' : unread}
                     <span className="sr-only"> new {unread === 1 ? 'message' : 'messages'}</span>
                   </span>

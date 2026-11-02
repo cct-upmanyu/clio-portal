@@ -71,7 +71,7 @@ function UnreadMessages() {
                   <span className="truncate text-[13px] text-muted">{[matter.number, matter.name].filter(Boolean).join(' · ')}</span>
                   <span className="line-clamp-2 text-[13px] text-body">{latest.body}</span>
                 </span>
-                <span className="mt-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-white">
+                <span className="mt-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               </Link>

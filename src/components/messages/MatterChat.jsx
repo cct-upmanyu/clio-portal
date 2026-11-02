@@ -13,6 +13,19 @@ const authorOf = (message) => {
   return nameOf(message.sender) || (message.senderType === 'staff' ? 'Legal team' : 'Client')
 }
 
+// Read receipt for one of my messages. status: 'none' (both ticks grey), 'partial' (one blue: some of the
+// matter's clients have read it), 'all' (both blue). A client's message is read once the firm has read the
+// chat after it. The firm's: per client, and `readers` (who has and hasn't) is only known to the firm.
+const receiptFor = (message, firmReadAt, contactReads) => {
+  const sent = new Date(message.sentAt)
+  const readSince = (readAt) => Boolean(readAt && sent <= new Date(readAt))
+  if (message.senderType === 'client') return { status: readSince(firmReadAt) ? 'all' : 'none' }
+  const readers = (contactReads || []).map((c) => ({ ...c, read: readSince(c.readAt) }))
+  const readCount = readers.filter((r) => r.read).length
+  const status = readCount === 0 ? 'none' : readCount === readers.length ? 'all' : 'partial'
+  return { status, readers: contactReads ? readers : undefined }
+}
+
 const typingLine = (users) => {
   const names = users.map((user) => user.firstName || nameOf(user) || 'Someone')
   if (names.length === 0) return ''
@@ -46,7 +59,7 @@ function OnlineBar({ online, connected, viewer }) {
 // A matter's live chat, for the client portal (`viewer="client"`) and the Admin Console (`viewer="firm"`).
 // Reading it clears the client's badge, or for the firm the matter's entry on the admin dashboard. Sends go through the API; the socket brings in everyone's messages, presence and typing.
 function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
-  const { messages: saved, isSuccess, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
+  const { messages: saved, firmReadAt, contactReads, isSuccess, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
   const [sendMessage] = useSendMessageMutation()
   const [outbox, setOutbox] = useState([])
 
@@ -89,7 +102,10 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
   }
 
   const messages = useMemo(() => {
-    const shown = saved.map((m) => ({ id: m.id, author: authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt }))
+    const shown = saved.map((m) => ({
+      id: m.id, author: authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt,
+      receipt: m.mine ? receiptFor(m, firmReadAt, contactReads) : undefined,
+    }))
     // The socket can bring a message back before its own POST does
     const savedIds = new Set(saved.map((m) => m.clientMessageId).filter(Boolean))
     const pending = outbox
@@ -99,7 +115,7 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
         sending: !p.failed, failed: p.failed, onRetry: () => deliver(p),
       }))
     return [...shown, ...pending]
-  }, [saved, outbox])
+  }, [saved, outbox, firmReadAt, contactReads])
 
   return (
     <MessageThread

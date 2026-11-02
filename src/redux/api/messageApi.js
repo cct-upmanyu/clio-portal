@@ -5,7 +5,9 @@ export const messageApi = baseApi.injectEndpoints({
     // Newest 100, oldest first; polled so staff replies from Zoho CRM show up
     getMessages: builder.query({
       query: (crmMatterId) => `/messages/matters/${crmMatterId}/messages?limit=100`,
-      transformResponse: (response) => response.data.messages,
+      // { messages, firmReadAt, contactReads }: the read times are for read receipts; contactReads (who
+      // among the clients has read) only comes to firm users
+      transformResponse: ({ data }) => ({ messages: data.messages, firmReadAt: data.firmReadAt ?? null, contactReads: data.contactReads ?? null }),
       providesTags: (result, error, crmMatterId) => [{ type: "Messages", id: crmMatterId }],
     }),
     sendMessage: builder.mutation({
@@ -18,7 +20,7 @@ export const messageApi = baseApi.injectEndpoints({
       async onQueryStarted({ crmMatterId }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(messageApi.util.updateQueryData("getMessages", crmMatterId, (messages) => {
+          dispatch(messageApi.util.updateQueryData("getMessages", crmMatterId, ({ messages }) => {
             if (!messages.some((m) => String(m.id) === String(data.id))) messages.push(data);
           }));
         } catch {

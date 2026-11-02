@@ -33,7 +33,7 @@ function MainNav({ onNavigate }) {
           <Icon className="size-[18px] shrink-0" />
           <span className="flex-1">{label}</span>
           {badge > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-navy">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">
               {badge > 99 ? '99+' : badge}
               <span className="sr-only"> unread</span>
             </span>

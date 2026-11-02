@@ -53,7 +53,7 @@ export function useMatterChat(crmMatterId) {
     }
     const onMessage = (message) => {
       if (!isThisMatter(message)) return
-      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, (messages) => {
+      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, ({ messages }) => {
         if (!messages.some((m) => String(m.id) === String(message.id))) {
           messages.push({ ...message, mine: String(message.sender?.id) === myId })
         }
@@ -63,6 +63,19 @@ export function useMatterChat(crmMatterId) {
         const { [String(message.sender?.id)]: _, ...rest } = prev
         return rest
       })
+    }
+    // Read receipts, live: the firm read the chat (everyone gets this), or a client did (firm users only)
+    const onRead = (payload) => {
+      if (!isThisMatter(payload)) return
+      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, (data) => {
+        data.firmReadAt = payload.firmReadAt
+      }))
+    }
+    const onReceipts = (payload) => {
+      if (!isThisMatter(payload)) return
+      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, (data) => {
+        data.contactReads = payload.contactReads
+      }))
     }
     const onPresence = (payload) => {
       if (isThisMatter(payload)) setOnline(payload.online || [])
@@ -83,6 +96,8 @@ export function useMatterChat(crmMatterId) {
     socket.on('disconnect', onDisconnect)
     socket.on('message', onMessage)
     socket.on('presence', onPresence)
+    socket.on('read', onRead)
+    socket.on('receipts', onReceipts)
     socket.on('typing', onTyping)
     if (socket.connected) join()
 
@@ -92,6 +107,8 @@ export function useMatterChat(crmMatterId) {
       socket.off('disconnect', onDisconnect)
       socket.off('message', onMessage)
       socket.off('presence', onPresence)
+      socket.off('read', onRead)
+      socket.off('receipts', onReceipts)
       socket.off('typing', onTyping)
       onDisconnect()
     }
@@ -132,7 +149,9 @@ export function useMatterChat(crmMatterId) {
   useEffect(() => stopTyping, [stopTyping])
 
   return {
-    messages: query.data ?? [],
+    messages: query.data?.messages ?? [],
+    firmReadAt: query.data?.firmReadAt ?? null,
+    contactReads: query.data?.contactReads ?? null,
     isSuccess: query.isSuccess,
     connected,
     online: online.filter((user) => String(user.id) !== myId),
