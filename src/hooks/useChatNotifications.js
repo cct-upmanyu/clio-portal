@@ -24,6 +24,8 @@ export function useChatNotifications() {
     const onFirmUnread = () => dispatch(baseApi.util.invalidateTags(['AdminDashboard']))
     // Firm users: something was recorded on a timeline
     const onActivity = () => dispatch(baseApi.util.invalidateTags(['Activity']))
+    // A task was created, edited, completed or cancelled on a matter they're part of
+    const onTasksChanged = () => dispatch(baseApi.util.invalidateTags(['Tasks', 'Dashboard']))
     // A client taken off one of their matters: it leaves the switcher (the portal moves to their next
     // matter); the server has already cut its live updates
     const onMatterRemoved = () => {
@@ -36,12 +38,14 @@ export function useChatNotifications() {
     socket.on('unread', onUnread)
     socket.on('firm-unread', onFirmUnread)
     socket.on('activity', onActivity)
+    socket.on('tasks-changed', onTasksChanged)
     socket.on('matter-removed', onMatterRemoved)
     socket.io.on('reconnect', onReconnect)
     return () => {
       socket.off('unread', onUnread)
       socket.off('firm-unread', onFirmUnread)
       socket.off('activity', onActivity)
+      socket.off('tasks-changed', onTasksChanged)
       socket.off('matter-removed', onMatterRemoved)
       socket.io.off('reconnect', onReconnect)
     }

@@ -42,8 +42,18 @@ export function describeActivity(event, { inMatter = false, viewer = 'firm' } = 
       return { icon: CalendarIcon, text: `${title || 'An event'} was scheduled${onMatter}` }
     case 'event.completed':
       return { icon: CalendarIcon, text: `${title || 'An event'} was completed${onMatter}` }
+    case 'task.created':
+      return { icon: TaskIcon, text: `${actor} created the task ${title ? `"${title}"` : ''}${onMatter}` }
+    case 'task.updated':
+      return { icon: TaskIcon, text: `${actor} updated the task ${title ? `"${title}"` : ''}${onMatter}` }
     case 'task.completed':
+      // An admin marking it done for clients reads differently from a client finishing their own
+      if (event.details?.onBehalfOf) return { icon: TaskIcon, text: `${actor} marked ${title ? `"${title}"` : 'a task'} done${onMatter}` }
       return { icon: TaskIcon, text: `${actor} completed ${title ? `"${title}"` : 'a task'}${onMatter}` }
+    case 'task.reopened':
+      return { icon: TaskIcon, text: `${actor} reopened the task ${title ? `"${title}"` : ''}${onMatter}` }
+    case 'task.cancelled':
+      return { icon: TaskIcon, text: `${actor} cancelled the task ${title ? `"${title}"` : ''}${onMatter}` }
     default:
       return { icon: CheckCircleIcon, text: event.type }
   }

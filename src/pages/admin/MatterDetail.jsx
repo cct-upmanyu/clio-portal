@@ -4,8 +4,9 @@ import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
-import { CalendarIcon, ChevronLeftIcon, RefreshIcon, TaskIcon, UserPlusIcon } from '../../components/ui/icons'
+import { CalendarIcon, ChevronLeftIcon, RefreshIcon, UserPlusIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
+import MatterTasks from '../../components/admin/MatterTasks'
 import MatterUsers from '../../components/admin/MatterUsers'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import MatterChat from '../../components/messages/MatterChat'
@@ -101,9 +102,7 @@ function MatterDetail() {
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-2 max-sm:px-4">
           <TabPanel id={tab} idPrefix="matter">
-            {tab === 'tasks' && (
-              <EmptyState icon={TaskIcon} title="No tasks">Tasks for the client on this matter will show here once they sync from Zoho CRM.</EmptyState>
-            )}
+            {tab === 'tasks' && <MatterTasks matter={matter} />}
             {tab === 'events' && (
               <EmptyState icon={CalendarIcon} title="No upcoming events">Meetings, hearings and deadlines will show here once they sync from Zoho CRM.</EmptyState>
             )}

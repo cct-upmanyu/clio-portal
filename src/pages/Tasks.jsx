@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Button from '../components/ui/Button'
 import Section from '../components/ui/Section'
 import EmptyState from '../components/ui/EmptyState'
 import Page from '../components/ui/Page'
@@ -7,7 +8,10 @@ import Pagination from '../components/ui/Pagination'
 import Tabs, { TabPanel } from '../components/ui/Tabs'
 import TaskRow from '../components/tasks/TaskRow'
 import { useMatters } from '../hooks/useMatters'
+import { isHandledGlobally } from '../redux/api/baseApi'
+import { useCompleteMyTaskMutation, useGetMyTasksQuery } from '../redux/api/taskApi'
 import { sortTasks } from '../utils/tasks'
+import { toast } from '../utils/toast'
 
 const PAGE_SIZE = 10
 
@@ -21,8 +25,24 @@ function Tasks() {
   const { selectedMatter: matter } = useMatters()
   const [tab, setTab] = useState('all')
   const [page, setPage] = useState(1)
+  const { data = [], isLoading } = useGetMyTasksQuery(matter.crmMatterId, { refetchOnFocus: true })
+  const [completeMyTask] = useCompleteMyTaskMutation()
+  const [completing, setCompleting] = useState(null)
 
-  const tasks = sortTasks(matter.tasks)
+  // The client's own part: other clients on the same task finish theirs separately
+  const markDone = async (task) => {
+    setCompleting(task.id)
+    try {
+      await completeMyTask({ crmMatterId: matter.crmMatterId, taskId: task.id }).unwrap()
+      toast.success('Task done', { description: task.title })
+    } catch (err) {
+      if (!isHandledGlobally(err)) toast.error("Couldn't mark it done", { description: err?.data?.message || 'Please try again.' })
+    } finally {
+      setCompleting(null)
+    }
+  }
+
+  const tasks = sortTasks(data)
   const byTab = {
     all: tasks,
     completed: tasks.filter((t) => t.status === 'completed'),
@@ -54,9 +74,19 @@ function Tasks() {
           ]}
         />
         <TabPanel id={tab} idPrefix="tasks">
-          {visible.length > 0 ? (
+          {isLoading ? (
+            <p className="py-6 text-center text-sm text-muted">Loading tasks…</p>
+          ) : visible.length > 0 ? (
             <ul className="flex flex-col divide-y divide-divider">
-              {pageTasks.map((task) => <TaskRow key={task.id} task={task} />)}
+              {pageTasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  action={task.status !== 'completed' && (
+                    <Button variant="secondary" size="sm" loading={completing === task.id} onClick={() => markDone(task)}>Mark as done</Button>
+                  )}
+                />
+              ))}
             </ul>
           ) : (
             <EmptyState title={EMPTY[tab].title}>{EMPTY[tab].text}</EmptyState>

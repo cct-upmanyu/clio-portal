@@ -18,6 +18,8 @@ import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { useInviteUser } from '../../hooks/useInviteUser'
 import { useGetAdminDashboardQuery } from '../../redux/api/adminApi'
 import { useGetFirmActivityInfiniteQuery } from '../../redux/api/activityApi'
+import { useGetTasksDueSoonQuery } from '../../redux/api/taskApi'
+import { taskStatus } from '../../utils/tasks'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import { greeting } from '../../utils/greeting'
 import { formatShort } from '../../utils/dates'
@@ -86,6 +88,42 @@ function UnreadMessages() {
   )
 }
 
+// The 10 open tasks due soonest across every matter; overdue ones first
+function TasksDueSoon() {
+  const { data: tasks = [], isLoading } = useGetTasksDueSoonQuery(10, { refetchOnFocus: true })
+  return (
+    <Section>
+      <SectionHeader title="Tasks due soon" linkLabel="All matters" to="/matters" />
+      {isLoading ? (
+        <p className="py-6 text-center text-sm text-muted">Loading tasks…</p>
+      ) : tasks.length > 0 ? (
+        <ul className="flex flex-col divide-y divide-divider">
+          {tasks.map((task) => {
+            const { tone, label } = taskStatus(task)
+            const done = task.assignees.filter((a) => a.status === 'completed').length
+            return (
+              <li key={task.id}>
+                <Link to={`/matters/${task.matterId}?tab=tasks`} className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-3 hover:bg-subtle">
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium">{task.title}</span>
+                    <span className="truncate text-[13px] text-muted">{[task.matter?.number, task.matter?.name].filter(Boolean).join(' · ')}</span>
+                    <span className="truncate text-xs text-muted">
+                      {task.assignees.map((a) => a.name).join(', ')}{task.assignees.length > 1 ? ` · ${done} of ${task.assignees.length} done` : ''}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${tone === 'overdue' ? 'bg-danger-soft text-danger' : 'bg-subtle text-body'}`}>{label}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <EmptyState title="No open tasks">Tasks you give clients on a matter will show here until they're done.</EmptyState>
+      )}
+    </Section>
+  )
+}
+
 function AdminDashboard() {
   const { firstName } = useCurrentUser()
   const { users, matters } = useAdminData()
@@ -143,6 +181,8 @@ function AdminDashboard() {
       <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:divide-x lg:divide-line">
         <div className="flex min-w-0 flex-col">
           <UnreadMessages />
+
+          <TasksDueSoon />
 
           <Section>
             <SectionHeader title="Waiting for the client to accept" linkLabel="All matters" to="/matters" />

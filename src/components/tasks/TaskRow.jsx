@@ -7,7 +7,8 @@ const TONES = {
   outstanding: { icon: CircleIcon, iconClass: 'text-muted', pill: 'bg-subtle text-body' },
 }
 
-function TaskRow({ task }) {
+// `action`: e.g. the client's "Mark as done" button, shown after the status
+function TaskRow({ task, action }) {
   const { tone, label } = taskStatus(task)
   const { icon: Icon, iconClass, pill } = TONES[tone]
 
@@ -19,7 +20,10 @@ function TaskRow({ task }) {
           <span className={`text-sm font-medium ${tone === 'completed' ? 'text-muted' : ''}`}>{task.title}</span>
           {task.description && <span className="text-[13px] leading-normal text-muted">{task.description}</span>}
         </div>
-        <span className={`self-start whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${pill}`}>{label}</span>
+        <span className="flex shrink-0 flex-wrap items-center gap-2 self-start">
+          <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${pill}`}>{label}</span>
+          {action}
+        </span>
       </div>
     </li>
   )
