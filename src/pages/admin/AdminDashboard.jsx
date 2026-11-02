@@ -8,7 +8,7 @@ import PageHeader from '../../components/ui/PageHeader'
 import Section from '../../components/ui/Section'
 import SectionHeader from '../../components/ui/SectionHeader'
 import {
-  CheckCircleIcon, InviteIcon, MattersIcon, ResendIcon, ShieldIcon, UserPlusIcon, UsersIcon, UserXIcon,
+  CheckCircleIcon, InboxIcon, InviteIcon, MattersIcon, ResendIcon, ShieldIcon, UserPlusIcon, UsersIcon, UserXIcon,
 } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
 import StatTile from '../../components/admin/StatTile'
@@ -16,6 +16,7 @@ import { ROLES } from '../../data/adminSampleData'
 import { adminActions, useAdminData } from '../../hooks/useAdminData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { useInviteUser } from '../../hooks/useInviteUser'
+import { useGetAdminDashboardQuery } from '../../redux/api/adminApi'
 import { greeting } from '../../utils/greeting'
 import { formatShort } from '../../utils/dates'
 import { toast } from '../../utils/toast'
@@ -36,6 +37,51 @@ function ResendButton({ user }) {
     <Button variant="secondary" size="sm" icon={ResendIcon} loading={sending} onClick={resend} aria-label={`Resend invitation to ${user.firstName} ${user.lastName}`}>
       Resend
     </Button>
+  )
+}
+
+const senderName = (sender) => [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'Client'
+
+// Client messages no one at the firm has read yet, one row per matter. Opening the chat reads them,
+// which takes the matter off every admin's list. Updates live (useChatNotifications).
+function UnreadMessages() {
+  const { data, isLoading } = useGetAdminDashboardQuery(undefined, { refetchOnFocus: true })
+  const entries = data?.unreadMessages ?? []
+
+  return (
+    <Section>
+      <SectionHeader title={entries.length > 0 ? `New client messages (${data.totalUnread})` : 'New client messages'} linkLabel="All matters" to="/matters" />
+      {isLoading ? (
+        <p className="py-6 text-center text-sm text-muted">Loading messages…</p>
+      ) : entries.length > 0 ? (
+        <ul className="flex flex-col divide-y divide-divider">
+          {entries.map(({ matter, unreadCount, latest }) => (
+            <li key={matter.id}>
+              <Link
+                to={`/matters/${matter.id}`}
+                className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-3 hover:bg-subtle"
+                aria-label={`${unreadCount} new ${unreadCount === 1 ? 'message' : 'messages'} from ${senderName(latest.sender)} on ${matter.number || ''} ${matter.name || ''}`}
+              >
+                <Avatar name={senderName(latest.sender)} size="sm" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex items-baseline gap-2">
+                    <span className="truncate text-sm font-semibold">{senderName(latest.sender)}</span>
+                    {latest.sentAt && <span className="shrink-0 text-xs text-muted">{formatShort(latest.sentAt)}</span>}
+                  </span>
+                  <span className="truncate text-[13px] text-muted">{[matter.number, matter.name].filter(Boolean).join(' · ')}</span>
+                  <span className="line-clamp-2 text-[13px] text-body">{latest.body}</span>
+                </span>
+                <span className="mt-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState icon={InboxIcon} title="You're all caught up">New messages from clients will show here until someone at the firm reads them.</EmptyState>
+      )}
+    </Section>
   )
 }
 
@@ -94,6 +140,8 @@ function AdminDashboard() {
 
       <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:divide-x lg:divide-line">
         <div className="flex min-w-0 flex-col">
+          <UnreadMessages />
+
           <Section>
             <SectionHeader title="Waiting for the client to accept" linkLabel="All matters" to="/matters" />
             {pending.length > 0 ? (
