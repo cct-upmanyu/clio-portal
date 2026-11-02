@@ -43,8 +43,8 @@ function OnlineBar({ online, connected, viewer }) {
   )
 }
 
-// A matter's live chat, for the client portal (`viewer="client"`, marks it read) and the Admin Console
-// (`viewer="firm"`). Sends go through the API; the socket brings in everyone's messages, presence and typing.
+// A matter's live chat, for the client portal (`viewer="client"`) and the Admin Console (`viewer="firm"`).
+// Reading it clears the client's badge, or for the firm the matter's entry on the admin dashboard. Sends go through the API; the socket brings in everyone's messages, presence and typing.
 function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
   const { messages: saved, isSuccess, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
   const [sendMessage] = useSendMessageMutation()
@@ -67,7 +67,7 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
   const [markRead] = useMarkMatterReadMutation()
   const lastMessageId = saved.at(-1)?.id
   useEffect(() => {
-    if (viewer === 'client' && isSuccess && visible) markRead(crmMatterId)
+    if (isSuccess && visible) markRead(crmMatterId)
   }, [viewer, crmMatterId, isSuccess, visible, lastMessageId, markRead])
 
   const deliver = async (item) => {

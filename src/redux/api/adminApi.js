@@ -10,6 +10,13 @@ export const adminApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       providesTags: ["AdminUsers"],
     }),
+    // { unreadMessages: [{ matter, unreadCount, latest: { body, sentAt, sender } }], totalUnread }:
+    // client messages no one at the firm has read yet
+    getAdminDashboard: builder.query({
+      query: () => "/admin/dashboard",
+      transformResponse: (response) => response.data,
+      providesTags: ["AdminDashboard"],
+    }),
     getAdminMatters: builder.query({
       query: () => "/admin/matters",
       transformResponse: (response) => response.data.matters,
@@ -41,4 +48,4 @@ export const adminApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetAdminUsersQuery, useGetAdminMattersQuery, useInviteUserMutation, useUpdateUserMutation } = adminApi;
+export const { useGetAdminDashboardQuery, useGetAdminUsersQuery, useGetAdminMattersQuery, useInviteUserMutation, useUpdateUserMutation } = adminApi;

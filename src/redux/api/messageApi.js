@@ -26,9 +26,11 @@ export const messageApi = baseApi.injectEndpoints({
         }
       },
     }),
-    // Clears this matter's badge in the switcher straight away, without refetching the matters list
+    // Client: clears this matter's badge in the switcher straight away, without refetching the matters list.
+    // Firm user: clears the matter from the admin dashboard (for every admin)
     markMatterRead: builder.mutation({
       query: (crmMatterId) => ({ url: `/messages/matters/${crmMatterId}/read`, method: "POST" }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminDashboard"]),
       async onQueryStarted(crmMatterId, { dispatch }) {
         dispatch(messageApi.util.updateQueryData("getMatters", undefined, (data) => {
           const matter = data?.matters?.find((m) => String(m.crmMatterId) === String(crmMatterId));

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { useMatters } from '../../hooks/useMatters'
+import { useGetAdminDashboardQuery } from '../../redux/api/adminApi'
 import { ADMIN_NAV_ITEMS, NAV_ITEMS } from './navItems'
 
 export const navItemClass = 'flex h-10 items-center gap-3 rounded-lg px-3 text-sm'
@@ -10,8 +11,12 @@ export const navItemIdleClass = 'font-medium text-nav-text hover:bg-white/10 hov
 function MainNav({ onNavigate }) {
   const { isAdmin } = useCurrentUser()
   const { selectedMatter } = useMatters()
-  // Unread messages in the matter being viewed; other matters' show in the matter switcher
-  const badges = { '/messages': isAdmin ? 0 : selectedMatter?.unreadCount || 0 }
+  const { data: dashboard } = useGetAdminDashboardQuery(undefined, { skip: !isAdmin, refetchOnFocus: true })
+  // Client: unread in the matter being viewed (other matters' show in the matter switcher).
+  // Admin: client messages no one at the firm has read, on the dashboard.
+  const badges = isAdmin
+    ? { '/': dashboard?.totalUnread || 0 }
+    : { '/messages': selectedMatter?.unreadCount || 0 }
 
   return (
     <nav aria-label="Main" className="flex flex-col gap-1">
