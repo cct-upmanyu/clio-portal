@@ -45,6 +45,27 @@ export const adminApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "AdminMatters", "Activity"]),
     }),
+    // ⋮ actions on the Users page. Each returns the updated user (with canEdit / canManageAccess / canManageMfa).
+    disableUserAccess: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/disable`, method: "POST" }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "Activity"]),
+    }),
+    enableUserAccess: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/enable`, method: "POST" }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "Activity"]),
+    }),
+    resendUserInvitation: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/resend-invitation`, method: "POST" }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "AdminMatters", "Activity"]),
+    }),
+    setUserMfaRequired: builder.mutation({
+      query: ({ id, required }) => ({ url: `/admin/users/${id}/mfa`, method: "PATCH", body: { required } }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "Activity"]),
+    }),
+    resetUserMfa: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/mfa/reset`, method: "POST" }),
+      invalidatesTags: (result, error) => (error ? [] : ["AdminUsers", "Activity"]),
+    }),
     // Takes a client off a matter (admins only). Their messages and history on it stay.
     removeMatterContact: builder.mutation({
       query: ({ crmMatterId, userId }) => ({ url: `/admin/matters/${crmMatterId}/contacts/${userId}/remove`, method: "POST" }),
@@ -56,5 +77,6 @@ export const adminApi = baseApi.injectEndpoints({
 
 export const {
   useGetAdminDashboardQuery, useGetAdminUsersQuery, useGetAdminMattersQuery, useInviteUserMutation, useUpdateUserMutation,
-  useRemoveMatterContactMutation,
+  useRemoveMatterContactMutation, useDisableUserAccessMutation, useEnableUserAccessMutation, useResendUserInvitationMutation,
+  useSetUserMfaRequiredMutation, useResetUserMfaMutation,
 } = adminApi;
