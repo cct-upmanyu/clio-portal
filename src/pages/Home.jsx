@@ -16,6 +16,7 @@ import { useGetDashboardQuery } from '../redux/api/matterApi'
 import { greeting } from '../utils/greeting'
 import { formatDate, formatShort } from '../utils/dates'
 import { fileKind } from '../utils/files'
+import { toEventItem } from '../utils/events'
 import { sortTasks, taskStatus } from '../utils/tasks'
 
 const byNewest = (key) => (a, b) => new Date(b[key]) - new Date(a[key])
@@ -36,7 +37,7 @@ function Home() {
         action={<Button to="/messages" icon={MessageIcon}>Message your attorney</Button>}
       />
 
-      <MatterSummaryCard matter={matter} nextEvent={current?.events[0]} />
+      <MatterSummaryCard matter={matter} nextEvent={current?.events[0] && toEventItem(current.events[0])} />
 
       {current ? (
         <DashboardSections dashboard={current} />
@@ -115,7 +116,7 @@ function DashboardSections({ dashboard }) {
           {events.length > 0 ? (
             <div className="flex flex-col divide-y divide-divider">
               {events.slice(0, 3).map((event) => (
-                <EventItem key={event.id} to="/events" {...event} />
+                <EventItem key={event.id} to="/events" {...toEventItem(event)} />
               ))}
             </div>
           ) : (

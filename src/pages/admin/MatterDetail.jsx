@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import Button from '../../components/ui/Button'
-import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
 import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
-import { CalendarIcon, ChevronLeftIcon, PlusIcon, RefreshIcon } from '../../components/ui/icons'
+import { ChevronLeftIcon, PlusIcon, RefreshIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
+import MatterEvents from '../../components/admin/MatterEvents'
 import MatterTasks from '../../components/admin/MatterTasks'
 import MatterUsers from '../../components/admin/MatterUsers'
 import ActivityFeed from '../../components/activity/ActivityFeed'
@@ -35,6 +35,7 @@ function MatterDetail() {
   const { matters, isLoading, refetch, isFetching } = useAdminMatters()
   const { inviteOpen, openInvite, closeInvite, invite } = useInviteUser()
   const [creatingTask, setCreatingTask] = useState(false)
+  const [creatingEvent, setCreatingEvent] = useState(false)
 
   if (isLoading) {
     return (
@@ -50,7 +51,7 @@ function MatterDetail() {
   const label = `${matter.number} · ${matter.name}`
   const hasAcceptedClient = matter.contacts.some((c) => c.invitation === 'accepted')
 
-  // The header's + adds to the open tab (Communication and Activity have nothing to add; events aren't built yet)
+  // The header's + adds to the open tab (Communication and Activity have nothing to add)
   const closed = matter.status === 'Closed'
   const addAction = {
     users: { label: 'Invite client', onClick: () => openInvite(matter.crmMatterId), disabledReason: closed ? 'This matter is closed' : null },
@@ -59,6 +60,7 @@ function MatterDetail() {
       onClick: () => setCreatingTask(true),
       disabledReason: closed ? 'This matter is closed' : !hasAcceptedClient ? 'A client needs to accept this matter first' : null,
     },
+    events: { label: 'New meeting', onClick: () => setCreatingEvent(true), disabledReason: closed ? 'This matter is closed' : null },
   }[tab]
 
   return (
@@ -129,9 +131,7 @@ function MatterDetail() {
         <div className="min-h-0 flex-1 overflow-y-auto bg-white px-6 py-2 max-sm:px-3">
           <TabPanel id={tab} idPrefix="matter">
             {tab === 'tasks' && <MatterTasks matter={matter} creating={creatingTask} onCreatingChange={setCreatingTask} />}
-            {tab === 'events' && (
-              <EmptyState icon={CalendarIcon} title="No upcoming events">Meetings, hearings and deadlines will show here once they sync from Zoho CRM.</EmptyState>
-            )}
+            {tab === 'events' && <MatterEvents matter={matter} creating={creatingEvent} onCreatingChange={setCreatingEvent} />}
             {tab === 'users' && <MatterUsers matter={matter} onInvite={() => openInvite(matter.crmMatterId)} />}
             {tab === 'activity' && <MatterActivity crmMatterId={matter.crmMatterId} />}
           </TabPanel>

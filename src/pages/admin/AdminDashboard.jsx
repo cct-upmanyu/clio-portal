@@ -19,6 +19,9 @@ import { useInviteUser } from '../../hooks/useInviteUser'
 import { useGetAdminDashboardQuery } from '../../redux/api/adminApi'
 import { useGetFirmActivityInfiniteQuery } from '../../redux/api/activityApi'
 import { useGetTasksDueSoonQuery } from '../../redux/api/taskApi'
+import { useGetUpcomingEventsQuery } from '../../redux/api/eventApi'
+import { eventPlace, toEventItem } from '../../utils/events'
+import EventItem from '../../components/ui/EventItem'
 import { taskStatus } from '../../utils/tasks'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import { greeting } from '../../utils/greeting'
@@ -124,6 +127,36 @@ function TasksDueSoon() {
   )
 }
 
+// The next 10 scheduled meetings across every matter
+function UpcomingEvents() {
+  const { data: events = [], isLoading } = useGetUpcomingEventsQuery(10, { refetchOnFocus: true })
+  return (
+    <Section>
+      <SectionHeader title="Upcoming events" linkLabel="All matters" to="/matters" />
+      {isLoading ? (
+        <p className="py-6 text-center text-sm text-muted">Loading events…</p>
+      ) : events.length > 0 ? (
+        <div className="flex flex-col divide-y divide-divider">
+          {events.map((event) => {
+            const item = toEventItem(event)
+            const matter = [event.matter?.number, event.matter?.name].filter(Boolean).join(' · ')
+            return (
+              <EventItem
+                key={event.id}
+                to={`/matters/${event.matterId}?tab=events`}
+                {...item}
+                place={[matter, eventPlace(event)].filter(Boolean).join(' · ')}
+              />
+            )
+          })}
+        </div>
+      ) : (
+        <EmptyState title="Nothing scheduled">Meetings you schedule on a matter will show here.</EmptyState>
+      )}
+    </Section>
+  )
+}
+
 function AdminDashboard() {
   const { firstName } = useCurrentUser()
   const { users, matters } = useAdminData()
@@ -183,6 +216,8 @@ function AdminDashboard() {
           <UnreadMessages />
 
           <TasksDueSoon />
+
+          <UpcomingEvents />
 
           <Section>
             <SectionHeader title="Waiting for the client to accept" linkLabel="All matters" to="/matters" />

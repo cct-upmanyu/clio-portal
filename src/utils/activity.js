@@ -39,9 +39,13 @@ export function describeActivity(event, { inMatter = false, viewer = 'firm' } = 
     case 'document.uploaded':
       return { icon: DocumentsIcon, text: `${actor} uploaded ${event.details?.documentName || 'a document'}${onMatter}` }
     case 'event.created':
-      return { icon: CalendarIcon, text: `${title || 'An event'} was scheduled${onMatter}` }
+      return { icon: CalendarIcon, text: `${actor} scheduled ${title ? `"${title}"` : 'a meeting'}${onMatter}` }
+    case 'event.updated':
+      return { icon: CalendarIcon, text: `${actor} updated the meeting ${title ? `"${title}"` : ''}${onMatter}` }
+    case 'event.cancelled':
+      return { icon: CalendarIcon, text: `${actor} cancelled the meeting ${title ? `"${title}"` : ''}${onMatter}` }
     case 'event.completed':
-      return { icon: CalendarIcon, text: `${title || 'An event'} was completed${onMatter}` }
+      return { icon: CalendarIcon, text: `${actor} marked ${title ? `"${title}"` : 'a meeting'} as held${onMatter}` }
     case 'task.created':
       return { icon: TaskIcon, text: `${actor} created the task ${title ? `"${title}"` : ''}${onMatter}` }
     case 'task.updated':
