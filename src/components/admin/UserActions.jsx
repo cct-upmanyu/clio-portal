@@ -54,9 +54,10 @@ function UserActions({ user }) {
   const [disableAccess, disabling] = useDisableUserAccessMutation()
   const [enableAccess, enabling] = useEnableUserAccessMutation()
   const [resendInvitation] = useResendUserInvitationMutation()
-  const [setMfaRequired] = useSetUserMfaRequiredMutation()
+  const [setMfaRequired, settingMfa] = useSetUserMfaRequiredMutation()
   const [resetMfa, resetting] = useResetUserMfaMutation()
-  const busy = disabling.isLoading || enabling.isLoading || resetting.isLoading
+  // Any call the open confirmation runs keeps it showing "Saving…" until the server answers
+  const busy = disabling.isLoading || enabling.isLoading || resetting.isLoading || settingMfa.isLoading
 
   const calls = {
     disable: () => disableAccess(user.id),

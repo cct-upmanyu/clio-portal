@@ -3,6 +3,7 @@ import Button from '../ui/Button'
 import ConfirmDialog from '../ui/ConfirmDialog'
 import EmptyState from '../ui/EmptyState'
 import { CalendarIcon, CheckCircleIcon, EditIcon, MapPinIcon, ResendIcon, UserXIcon } from '../ui/icons'
+import EventFilter, { EVENT_FILTERS } from '../events/EventFilter'
 import EventDialog from './EventDialog'
 import RowMenu from './RowMenu'
 import { isHandledGlobally } from '../../redux/api/baseApi'
@@ -10,12 +11,6 @@ import { useCreateEventMutation, useGetMatterEventsQuery, useSetEventStatusMutat
 import { formatDay } from '../../utils/dates'
 import { eventPlace, eventWhen, splitEvents, toEventItem } from '../../utils/events'
 import { toast } from '../../utils/toast'
-
-const FILTER_EMPTY = {
-  upcoming: 'Nothing scheduled. Use the + button above to add a meeting.',
-  past: 'No past meetings yet.',
-  all: 'No meetings yet.',
-}
 
 function DateBadge({ event }) {
   const { month, day } = toEventItem(event)
@@ -29,8 +24,10 @@ function DateBadge({ event }) {
 
 function EventRow({ event, onEdit, onStatus, onCancel }) {
   const held = event.status === 'completed'
+  const cancelled = event.status === 'cancelled'
   const place = eventPlace(event)
-  const items = [
+  // A cancelled meeting is kept for the record only
+  const items = cancelled ? [] : [
     ...(!held ? [{ label: 'Edit', icon: EditIcon, onSelect: () => onEdit(event) }] : []),
     held
       ? { label: 'Schedule again', icon: ResendIcon, onSelect: () => onStatus(event, 'reopen') }
@@ -45,12 +42,13 @@ function EventRow({ event, onEdit, onStatus, onCancel }) {
   ].filter(Boolean).join(' · ')
 
   return (
-    <li className={`flex items-start gap-3 py-3.5 max-sm:gap-2.5 ${held ? 'opacity-75' : ''}`}>
+    <li className={`flex items-start gap-3 py-3.5 max-sm:gap-2.5 ${held || cancelled ? 'opacity-75' : ''}`}>
       <DateBadge event={event} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={`text-sm font-semibold ${held ? 'text-muted' : 'text-ink'}`}>{event.title}</span>
+          <span className={`text-sm font-semibold ${cancelled ? 'text-muted line-through decoration-1' : held ? 'text-muted' : 'text-ink'}`}>{event.title}</span>
           {held && <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">Held</span>}
+          {cancelled && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">Cancelled</span>}
         </div>
         <span className="text-[13px] text-body">{eventWhen(event)}</span>
         {place && (
@@ -88,10 +86,9 @@ function MatterEvents({ matter, creating, onCreatingChange }) {
   const [cancelTarget, setCancelTarget] = useState(null)
 
   const clients = matter.contacts.filter((c) => c.invitation === 'accepted')
-  const { upcoming, past } = splitEvents(events)
+  const groups = splitEvents(events)
   const [filter, setFilter] = useState('upcoming')
-  // All: upcoming (soonest first), then past (most recent first)
-  const shown = { upcoming, past, all: [...upcoming, ...past] }[filter]
+  const shown = groups[filter]
 
   const failed = (title) => (err) => {
     if (!isHandledGlobally(err)) toast.error(title, { description: err?.data?.message || 'Please try again.' })
@@ -142,21 +139,9 @@ function MatterEvents({ matter, creating, onCreatingChange }) {
         <EmptyState icon={CalendarIcon} title="No meetings">Use the + button above to schedule a meeting, hearing or call.</EmptyState>
       ) : (
         <div className="flex flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-divider pb-2">
-            <label htmlFor="events-filter" className="sr-only">Show</label>
-            <select
-              id="events-filter"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="h-9 cursor-pointer rounded-lg border border-field bg-white pl-3 pr-8 text-sm font-medium text-ink focus:border-brand focus:outline-none max-sm:w-full"
-            >
-              <option value="upcoming">Upcoming ({upcoming.length})</option>
-              <option value="past">Past ({past.length})</option>
-              <option value="all">All ({upcoming.length + past.length})</option>
-            </select>
-          </div>
+          <EventFilter value={filter} onChange={setFilter} groups={groups} />
           {shown.length > 0 ? list(shown) : (
-            <p className="py-6 text-center text-sm text-muted">{FILTER_EMPTY[filter]}</p>
+            <p className="py-6 text-center text-sm text-muted">{EVENT_FILTERS.find((f) => f.id === filter).empty}</p>
           )}
         </div>
       )}

@@ -23,11 +23,17 @@ export const toEventItem = (event) => ({
   place: eventPlace(event),
 })
 
-// Upcoming (not ended, still scheduled) soonest first; then past or held ones, most recent first
+// Upcoming (scheduled, not ended) soonest first; past (held or ended) and cancelled most recent first.
+// all: upcoming, then past, then cancelled.
 export function splitEvents(events, now = new Date()) {
+  const cancelled = events.filter((e) => e.status === 'cancelled')
+  const live = events.filter((e) => e.status !== 'cancelled')
   const ended = (e) => e.status === 'completed' || new Date(e.endAt || e.startAt) < now
-  return {
-    upcoming: events.filter((e) => !ended(e)).sort((a, b) => new Date(a.startAt) - new Date(b.startAt)),
-    past: events.filter(ended).sort((a, b) => new Date(b.startAt) - new Date(a.startAt)),
+  const newestFirst = (a, b) => new Date(b.startAt) - new Date(a.startAt)
+  const groups = {
+    upcoming: live.filter((e) => !ended(e)).sort((a, b) => new Date(a.startAt) - new Date(b.startAt)),
+    past: live.filter(ended).sort(newestFirst),
+    cancelled: cancelled.sort(newestFirst),
   }
+  return { ...groups, all: [...groups.upcoming, ...groups.past, ...groups.cancelled] }
 }
