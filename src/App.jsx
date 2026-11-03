@@ -6,6 +6,7 @@ import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import AdminMatters from './pages/admin/Matters.jsx'
 import AdminMatterDetail from './pages/admin/MatterDetail.jsx'
 import AdminUsers from './pages/admin/Users.jsx'
+import AdminActivity from './pages/admin/Activity.jsx'
 import Home from './pages/Home.jsx'
 import Messages from './pages/Messages.jsx'
 import Tasks from './pages/Tasks.jsx'
@@ -45,6 +46,7 @@ function App() {
             <Route path="/matters" element={<AdminMatters />} />
             <Route path="/matters/:matterId" element={<AdminMatterDetail />} />
             <Route path="/users" element={<AdminUsers />} />
+            <Route path="/activity" element={<AdminActivity />} />
           </Route>
           <Route path="/settings" element={<Settings />}>
             <Route index element={<Navigate to="security" replace />} />

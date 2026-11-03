@@ -160,7 +160,7 @@ function UpcomingEvents() {
 function AdminDashboard() {
   const { firstName } = useCurrentUser()
   const { users, matters } = useAdminData()
-  const activity = useGetFirmActivityInfiniteQuery({ perPage: 50 }, { refetchOnFocus: true })
+  const activity = useGetFirmActivityInfiniteQuery({ perPage: 20 }, { refetchOnFocus: true })
   const { inviteOpen, inviteCrmMatterId, openInvite, closeInvite, invite } = useInviteUser()
 
   const count = (list, fn) => list.filter(fn).length
@@ -268,9 +268,9 @@ function AdminDashboard() {
 
         <div className="flex min-w-0 flex-col">
           <Section>
-            <SectionHeader title="Recent activity" />
-            {/* The latest 50 events across the firm; each matter's Timeline tab has its full history */}
-            <ActivityFeed result={activity} loadMore={false} />
+            <SectionHeader title="Recent activity" linkLabel="All activity" to="/activity" />
+            {/* The latest 20 across the firm; the Activity page has everything */}
+            <ActivityFeed result={activity} loadMore={false} linkToMatter />
           </Section>
         </div>
       </div>

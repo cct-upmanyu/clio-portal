@@ -16,6 +16,7 @@ export const ADMIN_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: DashboardIcon, end: true },
   { to: '/matters', label: 'Matters', icon: MattersIcon },
   { to: '/users', label: 'Users', icon: UsersIcon },
+  { to: '/activity', label: 'Activity', icon: TimelineIcon },
 ]
 
 export const portalName = (portal) => (portal === 'admin' ? 'Admin Console' : 'Client Portal')
