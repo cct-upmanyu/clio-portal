@@ -11,6 +11,12 @@ import { formatDay } from '../../utils/dates'
 import { eventPlace, eventWhen, splitEvents, toEventItem } from '../../utils/events'
 import { toast } from '../../utils/toast'
 
+const FILTER_EMPTY = {
+  upcoming: 'Nothing scheduled. Use the + button above to add a meeting.',
+  past: 'No past meetings yet.',
+  all: 'No meetings yet.',
+}
+
 function DateBadge({ event }) {
   const { month, day } = toEventItem(event)
   return (
@@ -83,6 +89,9 @@ function MatterEvents({ matter, creating, onCreatingChange }) {
 
   const clients = matter.contacts.filter((c) => c.invitation === 'accepted')
   const { upcoming, past } = splitEvents(events)
+  const [filter, setFilter] = useState('upcoming')
+  // All: upcoming (soonest first), then past (most recent first)
+  const shown = { upcoming, past, all: [...upcoming, ...past] }[filter]
 
   const failed = (title) => (err) => {
     if (!isHandledGlobally(err)) toast.error(title, { description: err?.data?.message || 'Please try again.' })
@@ -132,18 +141,24 @@ function MatterEvents({ matter, creating, onCreatingChange }) {
       ) : events.length === 0 ? (
         <EmptyState icon={CalendarIcon} title="No meetings">Use the + button above to schedule a meeting, hearing or call.</EmptyState>
       ) : (
-        <>
-          <section aria-labelledby="events-upcoming" className="flex flex-col">
-            <h2 id="events-upcoming" className="border-b border-divider pb-2 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Upcoming</h2>
-            {upcoming.length > 0 ? list(upcoming) : <p className="py-4 text-sm text-muted">Nothing scheduled.</p>}
-          </section>
-          {past.length > 0 && (
-            <section aria-labelledby="events-past" className="flex flex-col">
-              <h2 id="events-past" className="border-b border-divider pb-2 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Past</h2>
-              {list(past)}
-            </section>
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between gap-3 border-b border-divider pb-2">
+            <label htmlFor="events-filter" className="sr-only">Show</label>
+            <select
+              id="events-filter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="h-9 cursor-pointer rounded-lg border border-field bg-white pl-3 pr-8 text-sm font-medium text-ink focus:border-brand focus:outline-none max-sm:w-full"
+            >
+              <option value="upcoming">Upcoming ({upcoming.length})</option>
+              <option value="past">Past ({past.length})</option>
+              <option value="all">All ({upcoming.length + past.length})</option>
+            </select>
+          </div>
+          {shown.length > 0 ? list(shown) : (
+            <p className="py-6 text-center text-sm text-muted">{FILTER_EMPTY[filter]}</p>
           )}
-        </>
+        </div>
       )}
 
       <EventDialog
