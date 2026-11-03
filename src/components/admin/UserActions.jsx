@@ -35,8 +35,8 @@ const CONFIRMS = {
   stopRequiringMfa: (user, self) => ({
     icon: ShieldOffIcon, tone: 'danger', title: 'Stop requiring 2FA?', confirmLabel: 'Stop requiring',
     body: self
-      ? 'You will be able to sign in with just a password or emailed code. Authenticators you already set up keep working.'
-      : `${fullName(user)} will be able to sign in with just a password or emailed code. Authenticators they already set up keep working.`,
+      ? "2FA is turned off for you: your authenticator apps and backup codes are removed, and you'll sign in with just your password or an emailed code. You can set it up again in Security settings."
+      : `2FA is turned off for ${fullName(user)}: their authenticator apps and backup codes are removed, and they'll sign in with just their password or an emailed code. They can set it up again in their Security settings.`,
     run: 'stopRequiringMfa', done: '2FA is no longer required',
   }),
 }
