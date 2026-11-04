@@ -1,5 +1,7 @@
 const SIZES = {
   xs: 'size-8 text-[13px]',
+  // Chat: smaller on phones so the message gets the room
+  chat: 'size-8 text-[13px] max-sm:size-6 max-sm:text-[10px]',
   sm: 'size-9 text-sm',
   md: 'size-10 text-[15px]',
   lg: 'size-11 text-[15px]',

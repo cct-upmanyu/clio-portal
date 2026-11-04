@@ -5,10 +5,10 @@ import { toast } from '../utils/toast'
 
 // Opens the invite dialog (optionally for one matter, by its CRM id) and sends the invitation
 export function useInviteUser() {
-  const [dialog, setDialog] = useState({ open: false, crmMatterId: null })
+  const [dialog, setDialog] = useState({ open: false, crmMatterId: null, matterLabel: null })
   const [inviteUser] = useInviteUserMutation()
 
-  const openInvite = useCallback((crmMatterId = null) => setDialog({ open: true, crmMatterId }), [])
+  const openInvite = useCallback((crmMatterId = null, matterLabel = null) => setDialog({ open: true, crmMatterId, matterLabel }), [])
   const closeInvite = useCallback(() => setDialog((prev) => ({ ...prev, open: false })), [])
 
   // Resolves { sent: true }, or { fieldErrors } for the dialog to show next to the fields
@@ -34,5 +34,5 @@ export function useInviteUser() {
     }
   }, [inviteUser])
 
-  return { inviteOpen: dialog.open, inviteCrmMatterId: dialog.crmMatterId, openInvite, closeInvite, invite: send }
+  return { inviteOpen: dialog.open, inviteCrmMatterId: dialog.crmMatterId, inviteMatterLabel: dialog.matterLabel, openInvite, closeInvite, invite: send }
 }

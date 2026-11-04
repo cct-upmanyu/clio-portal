@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import MessageThread from './MessageThread'
+import PreviewDialog from '../documents/PreviewDialog'
+import { useChatOutbox } from '../../hooks/useChatOutbox'
+import { useDocumentDownload } from '../../hooks/useDocuments'
 import { useMatterChat } from '../../hooks/useMatterChat'
-import { useMarkMatterReadMutation, useSendMessageMutation } from '../../redux/api/messageApi'
+import { useMarkMatterReadMutation } from '../../redux/api/messageApi'
 import { setActiveChat } from '../../utils/activeChat'
-
-const newClientMessageId = () => crypto.randomUUID().replaceAll('-', '')
+import { documentProblem, formatBytes, previewKind } from '../../utils/files'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { toast } from '../../utils/toast'
 
 const nameOf = (person) => [person?.firstName, person?.lastName].filter(Boolean).join(' ')
 
@@ -64,9 +68,11 @@ function OnlineBar({ online, connected, viewer }) {
 // A matter's live chat, for the client portal (`viewer="client"`) and the Admin Console (`viewer="firm"`).
 // Reading it clears the client's badge, or for the firm the matter's entry on the admin dashboard. Sends go through the API; the socket brings in everyone's messages, presence and typing.
 function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
-  const { messages: saved, firmReadAt, contactReads, isSuccess, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
-  const [sendMessage] = useSendMessageMutation()
-  const [outbox, setOutbox] = useState([])
+  const { messages: saved, firmReadAt, contactReads, attachmentLimits, isSuccess, isLoading, isError, refetch, connected, online, typingUsers, notifyTyping, stopTyping } = useMatterChat(crmMatterId)
+  const { outbox, send, retry } = useChatOutbox(crmMatterId)
+  const { name: myName } = useCurrentUser()
+  const { linkFor, download } = useDocumentDownload(crmMatterId)
+  const [previewDoc, setPreviewDoc] = useState(null)
 
   // Only read while it's actually seen: with the browser tab in the background, new messages stay
   // unread (badges show them) until the user comes back
@@ -88,27 +94,36 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
     if (isSuccess && visible) markRead(crmMatterId)
   }, [viewer, crmMatterId, isSuccess, visible, lastMessageId, markRead])
 
-  const deliver = async (item) => {
-    setOutbox((prev) => prev.map((p) => (p.clientMessageId === item.clientMessageId ? { ...p, failed: false } : p)))
-    try {
-      await sendMessage({ crmMatterId, body: item.body, clientMessageId: item.clientMessageId }).unwrap()
-      setOutbox((prev) => prev.filter((p) => p.clientMessageId !== item.clientMessageId))
-    } catch {
-      setOutbox((prev) => prev.map((p) => (p.clientMessageId === item.clientMessageId ? { ...p, failed: true } : p)))
-    }
-  }
-
-  const handleSend = ({ body }) => {
-    if (!body) return
+  const handleSend = ({ body, files = [] }) => {
+    const usable = files.filter((file) => {
+      const maxBytes = attachmentLimits?.maxBytes
+      const problem = documentProblem(file, maxBytes ? { maxBytes } : undefined)
+      // Too big for the chat: those go to the matter's OneDrive folder instead
+      const tooBig = maxBytes && file.size > maxBytes
+      if (problem) {
+        toast.error(`${file.name} can't be sent in the chat`, {
+          description: tooBig ? `Files in the chat can be up to ${formatBytes(maxBytes)}. Upload it in Documents → OneDrive instead.` : problem,
+        })
+      }
+      return !problem
+    })
+    if (!body && usable.length === 0) return
     stopTyping()
-    const item = { clientMessageId: newClientMessageId(), body, sentAt: new Date().toISOString() }
-    setOutbox((prev) => [...prev, item])
-    deliver(item)
+    send({ body, files: usable })
   }
 
   const messages = useMemo(() => {
     const shown = saved.map((m) => ({
-      id: m.id, author: authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt,
+      id: m.id, author: authorOf(m), name: m.mine ? (nameOf(m.sender) || myName || 'You') : authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt,
+      attachment: m.attachment && {
+        ...m.attachment,
+        onDownload: () => download(m.attachment),
+        // Only files the portal can show; the preview's details line says who sent it and when
+        onPreview: previewKind(m.attachment.name) ? () => setPreviewDoc({
+          id: m.attachment.documentId, name: m.attachment.name, size: m.attachment.size,
+          mine: m.mine, uploadedBy: { name: authorOf(m) }, uploadedAt: m.sentAt,
+        }) : undefined,
+      },
       receipt: m.mine ? receiptFor(m, firmReadAt, contactReads) : undefined,
     }))
     // The socket can bring a message back before its own POST does
@@ -116,23 +131,34 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
     const pending = outbox
       .filter((p) => !savedIds.has(p.clientMessageId))
       .map((p) => ({
-        id: p.clientMessageId, author: 'You', fromMe: true, body: p.body, sentAt: p.sentAt,
-        sending: !p.failed, failed: p.failed, onRetry: () => deliver(p),
+        id: p.clientMessageId, author: 'You', name: myName || 'You', fromMe: true, body: p.body, sentAt: p.sentAt,
+        attachment: p.file && { name: p.file.name, size: p.file.size, progress: p.documentId ? null : p.progress },
+        sending: !p.failed, failed: p.failed, onRetry: () => retry(p.clientMessageId),
       }))
     return [...shown, ...pending]
-  }, [saved, outbox, firmReadAt, contactReads])
+  }, [saved, outbox, firmReadAt, contactReads, download, retry, myName])
 
   return (
-    <MessageThread
-      messages={messages}
-      onSend={handleSend}
-      onTyping={notifyTyping}
-      title={title}
-      emptyText={emptyText}
-      header={<OnlineBar online={online} connected={connected} viewer={viewer} />}
-      typingText={typingLine(typingUsers)}
-      allowAttachments={false}
-    />
+    <>
+      <MessageThread
+        messages={messages}
+        onSend={handleSend}
+        onTyping={notifyTyping}
+        title={title}
+        emptyText={emptyText}
+        header={<OnlineBar online={online} connected={connected} viewer={viewer} />}
+        typingText={typingLine(typingUsers)}
+        loading={isLoading}
+        loadError={isError}
+        onRetry={refetch}
+      />
+      <PreviewDialog
+        doc={previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onDownload={(doc) => download({ documentId: doc.id, size: doc.size })}
+        linkFor={linkFor}
+      />
+    </>
   )
 }
 

@@ -2,30 +2,46 @@ import { useState } from 'react'
 import Avatar from '../ui/Avatar'
 import FileTile from '../ui/FileTile'
 import { CheckIcon, CircleIcon, DownloadIcon } from '../ui/icons'
-import { formatDateTime, formatTime } from '../../utils/dates'
-import { formatBytes, saveFile } from '../../utils/files'
+import { formatDateTime, formatMessageTime, formatTime } from '../../utils/dates'
+import { formatBytes } from '../../utils/files'
 
+// A file sent with the message. `progress` (0-1): still uploading; `deleted`: the firm removed it.
 function Attachment({ attachment }) {
-  const handleDownload = () => {
-    if (attachment.file) saveFile(attachment.file)
-    // TODO: otherwise fetch a download URL for the attachment from the backend
-  }
+  const { name, size, progress, deleted, onDownload, onPreview } = attachment
+  const uploading = typeof progress === 'number'
 
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-line bg-white p-2">
-      <FileTile name={attachment.name} size="sm" />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[13px] font-medium">{attachment.name}</span>
-        <span className="text-[11px] text-muted">{formatBytes(attachment.size)}</span>
-      </span>
-      <button
-        type="button"
-        onClick={handleDownload}
-        aria-label={`Download ${attachment.name}`}
-        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-body hover:bg-subtle hover:text-brand"
-      >
-        <DownloadIcon className="size-4" />
-      </button>
+    <div className={`flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-white p-2 ${deleted ? 'opacity-60' : ''}`}>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <FileTile name={name} size="sm" />
+        <span className="flex min-w-0 flex-1 flex-col">
+          {onPreview && !deleted ? (
+            <button type="button" onClick={onPreview} title="Preview" className="cursor-pointer truncate text-left text-[13px] font-medium hover:text-brand hover:underline">
+              {name}
+            </button>
+          ) : (
+            <span className={`truncate text-[13px] font-medium ${deleted ? 'line-through' : ''}`}>{name}</span>
+          )}
+          <span className="text-[11px] text-muted">
+            {deleted ? 'File removed' : uploading ? `Uploading · ${Math.round(progress * 100)}%` : formatBytes(size)}
+          </span>
+        </span>
+        {onDownload && !deleted && (
+          <button
+            type="button"
+            onClick={onDownload}
+            aria-label={`Download ${name}`}
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-body hover:bg-subtle hover:text-brand"
+          >
+            <DownloadIcon className="size-4" />
+          </button>
+        )}
+      </div>
+      {uploading && (
+        <span className="h-1 overflow-hidden rounded-full bg-subtle" aria-hidden="true">
+          <span className="block h-full rounded-full bg-brand transition-[width]" style={{ width: `${Math.max(progress * 100, 3)}%` }} />
+        </span>
+      )}
     </div>
   )
 }
@@ -97,33 +113,46 @@ function Receipt({ receipt }) {
   )
 }
 
-// One chat message. `firstOfRun` = first of consecutive messages from the same person,
-// which shows the avatar and name and adds space above. `receipt` (my messages only): see MatterChat.
+// One chat message. `firstOfRun` = first of consecutive messages from the same person: the name, the
+// full date and time and the avatar go with it; the rest of the run sits under it with just the time.
+// `receipt` (my messages only): see MatterChat. The avatar shrinks on phones so the text gets the room.
 function MessageBubble({ message, firstOfRun }) {
-  const { fromMe, author, body, sentAt, attachment, sending, failed, onRetry, receipt } = message
+  const { fromMe, author, name, body, sentAt, attachment, sending, failed, onRetry, receipt } = message
+  const who = name || author
+  const avatar = firstOfRun
+    ? <span className="mt-6 shrink-0 max-sm:mt-5"><Avatar name={who} size="chat" /></span>
+    : <span aria-hidden="true" className="w-8 shrink-0 max-sm:w-6" />
 
   return (
-    <div className={`flex items-start gap-2 ${fromMe ? 'justify-end' : ''} ${firstOfRun ? 'mt-3' : ''}`}>
-      {!fromMe && (firstOfRun ? <Avatar name={author} size="xs" /> : <span aria-hidden="true" className="w-8 shrink-0" />)}
+    <div className={`flex items-start gap-2.5 max-sm:gap-1.5 ${fromMe ? 'flex-row-reverse' : ''} ${firstOfRun ? 'mt-4 max-sm:mt-3' : ''}`}>
+      {avatar}
 
-      <div
-        className={`flex max-w-[min(560px,80%)] flex-col gap-1.5 rounded-2xl px-3.5 py-2.5 ${
-          fromMe ? 'bg-[#D3E6FA]' : 'border border-line bg-white'
-        } ${firstOfRun ? (fromMe ? 'rounded-tr-md' : 'rounded-tl-md') : ''}`}
-      >
-        {!fromMe && firstOfRun && <span className="text-[13px] font-semibold">{author}</span>}
-        {attachment && <Attachment attachment={attachment} />}
-        {body && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{body}</p>}
-        {failed ? (
-          <button type="button" onClick={onRetry} className="cursor-pointer self-end text-[11px] font-medium leading-none text-danger hover:underline">
-            Not sent · Retry
-          </button>
-        ) : (
-          <span className="flex flex-wrap items-center justify-end gap-1 self-end text-[11px] leading-none text-muted">
-            <time dateTime={sentAt}>{sending ? 'Sending…' : formatTime(sentAt)}</time>
-            {fromMe && !sending && receipt && <Receipt receipt={receipt} />}
-          </span>
+      <div className={`flex min-w-0 max-w-[min(720px,85%)] flex-col gap-1 max-sm:max-w-[calc(100%-1.875rem)] ${fromMe ? 'items-end' : 'items-start'}`}>
+        {firstOfRun && (
+          <p className={`flex max-w-full flex-wrap items-baseline gap-x-2 px-0.5 ${fromMe ? 'justify-end' : ''}`}>
+            <span className="truncate text-[13px] font-semibold text-ink max-sm:text-xs">{who}</span>
+            <time dateTime={sentAt} className="text-xs text-muted max-sm:text-[11px]">
+              {sending ? 'Sending…' : formatMessageTime(sentAt)}
+            </time>
+          </p>
         )}
+
+        <div className={`flex min-w-0 max-w-full flex-col gap-1.5 rounded-lg px-3.5 py-2.5 max-sm:px-3 max-sm:py-2 ${
+          fromMe ? 'bg-[#E3F0FC]' : 'bg-[#F1F3F6]'
+        }`}>
+          {attachment && <Attachment attachment={attachment} />}
+          {body && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink max-sm:text-[13.5px]">{body}</p>}
+          {failed ? (
+            <button type="button" onClick={onRetry} className="cursor-pointer self-end text-[11px] font-medium leading-none text-danger hover:underline">
+              Not sent · Retry
+            </button>
+          ) : (!firstOfRun || (fromMe && !sending && receipt)) && (
+            <span className="flex flex-wrap items-center justify-end gap-1 self-end text-[11px] leading-none text-muted">
+              {!firstOfRun && <time dateTime={sentAt}>{sending ? 'Sending…' : formatTime(sentAt)}</time>}
+              {fromMe && !sending && receipt && <Receipt receipt={receipt} />}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

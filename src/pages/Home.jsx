@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Button from '../components/ui/Button'
 import Section from '../components/ui/Section'
 import EmptyState from '../components/ui/EmptyState'
@@ -9,13 +10,15 @@ import SectionHeader from '../components/ui/SectionHeader'
 import MatterSummaryCard from '../components/home/MatterSummaryCard'
 import LegalTeamCard from '../components/home/LegalTeamCard'
 import Spinner from '../components/ui/Spinner'
+import PreviewDialog from '../components/documents/PreviewDialog'
 import { CalendarIcon, DocumentsIcon, InboxIcon, MessageIcon } from '../components/ui/icons'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import { useMatters } from '../hooks/useMatters'
+import { useDocumentDownload } from '../hooks/useDocuments'
 import { useGetDashboardQuery } from '../redux/api/matterApi'
 import { greeting } from '../utils/greeting'
 import { formatDate, formatShort } from '../utils/dates'
-import { fileKind } from '../utils/files'
+import { fileKind, previewKind, sharedByLabel } from '../utils/files'
 import { toEventItem } from '../utils/events'
 import { sortTasks, taskStatus } from '../utils/tasks'
 
@@ -57,7 +60,9 @@ function Home() {
 }
 
 function DashboardSections({ dashboard }) {
-  const recentDocuments = [...dashboard.documents].sort(byNewest('sharedAt')).slice(0, 3)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const { linkFor, download } = useDocumentDownload(dashboard.matter.crmMatterId)
+  const recentDocuments = [...dashboard.documents].sort(byNewest('uploadedAt')).slice(0, 3)
   const dueTasks = sortTasks(dashboard.tasks).filter((t) => t.status !== 'completed').slice(0, 3)
   const { recentMessages, events } = dashboard
 
@@ -69,7 +74,7 @@ function DashboardSections({ dashboard }) {
           {recentDocuments.length > 0 ? (
             <div className="flex flex-col divide-y divide-divider">
               {recentDocuments.map((doc) => (
-                <ListItem key={doc.id} to="/documents" kind={fileKind(doc.name)} title={doc.name} meta={`Shared by ${doc.sharedBy} · ${formatDate(doc.sharedAt)}`} />
+                <ListItem key={doc.id} onClick={() => (previewKind(doc.name) ? setPreviewDoc(doc) : download(doc))} kind={fileKind(doc.name)} title={doc.name} meta={`Shared by ${sharedByLabel(doc)} · ${formatDate(doc.uploadedAt)}`} />
               ))}
             </div>
           ) : (
@@ -84,7 +89,7 @@ function DashboardSections({ dashboard }) {
           {recentMessages.length > 0 ? (
             <div className="flex flex-col divide-y divide-divider">
               {recentMessages.map((msg) => (
-                <ListItem key={msg.id} to="/messages" kind="message" title={senderName(msg.sender)} meta={msg.body} trailing={msg.sentAt ? formatShort(msg.sentAt) : undefined} />
+                <ListItem key={msg.id} to="/messages" kind="message" title={senderName(msg.sender)} meta={msg.body || (msg.attachment ? `Sent ${msg.attachment.name}` : '')} trailing={msg.sentAt ? formatShort(msg.sentAt) : undefined} />
               ))}
             </div>
           ) : (
@@ -128,6 +133,8 @@ function DashboardSections({ dashboard }) {
 
         <LegalTeamCard matter={dashboard.matter} />
       </div>
+
+      <PreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} onDownload={download} linkFor={linkFor} />
     </div>
   )
 }

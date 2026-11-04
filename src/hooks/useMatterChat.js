@@ -77,6 +77,14 @@ export function useMatterChat(crmMatterId) {
         data.contactReads = payload.contactReads
       }))
     }
+    // The firm removed a file sent in this chat: the message stays, the file shows as removed
+    const onAttachmentRemoved = (payload) => {
+      if (!isThisMatter(payload)) return
+      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, ({ messages }) => {
+        const message = messages.find((m) => String(m.id) === String(payload.messageId))
+        if (message?.attachment) message.attachment.deleted = true
+      }))
+    }
     const onPresence = (payload) => {
       if (isThisMatter(payload)) setOnline(payload.online || [])
     }
@@ -99,6 +107,7 @@ export function useMatterChat(crmMatterId) {
     socket.on('read', onRead)
     socket.on('receipts', onReceipts)
     socket.on('typing', onTyping)
+    socket.on('attachment-removed', onAttachmentRemoved)
     if (socket.connected) join()
 
     return () => {
@@ -110,6 +119,7 @@ export function useMatterChat(crmMatterId) {
       socket.off('read', onRead)
       socket.off('receipts', onReceipts)
       socket.off('typing', onTyping)
+      socket.off('attachment-removed', onAttachmentRemoved)
       onDisconnect()
     }
   }, [crmMatterId, dispatch, myId])
@@ -152,7 +162,12 @@ export function useMatterChat(crmMatterId) {
     messages: query.data?.messages ?? [],
     firmReadAt: query.data?.firmReadAt ?? null,
     contactReads: query.data?.contactReads ?? null,
+    attachmentLimits: query.data?.attachmentLimits ?? null,
     isSuccess: query.isSuccess,
+    // The first load only: later refreshes keep showing the messages already there
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
     connected,
     online: online.filter((user) => String(user.id) !== myId),
     typingUsers: Object.values(typing).map((t) => t.user),

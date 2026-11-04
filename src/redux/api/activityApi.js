@@ -13,21 +13,21 @@ export const activityApi = baseApi.injectEndpoints({
     // Admin Console: every matter and account event. Arg: { perPage }
     getFirmActivity: builder.infiniteQuery({
       infiniteQueryOptions: pages,
-      query: ({ queryArg, pageParam }) => withCursor("/admin/activity", queryArg?.perPage ?? 50, pageParam),
+      query: ({ queryArg, pageParam }) => withCursor("/admin/activity", queryArg?.perPage ?? 250, pageParam),
       transformResponse: (response) => response.data,
       providesTags: ["Activity"],
     }),
     // Admin Console: one matter's full timeline. Arg: crmMatterId
     getAdminMatterActivity: builder.infiniteQuery({
       infiniteQueryOptions: pages,
-      query: ({ queryArg, pageParam }) => withCursor(`/admin/matters/${queryArg}/activity`, 50, pageParam),
+      query: ({ queryArg, pageParam }) => withCursor(`/admin/matters/${queryArg}/activity`, 250, pageParam),
       transformResponse: (response) => response.data,
       providesTags: ["Activity"],
     }),
     // Client portal: one of the client's matters, events visible to clients only. Arg: crmMatterId
     getMatterActivity: builder.infiniteQuery({
       infiniteQueryOptions: pages,
-      query: ({ queryArg, pageParam }) => withCursor(`/matters/${queryArg}/activity`, 50, pageParam),
+      query: ({ queryArg, pageParam }) => withCursor(`/matters/${queryArg}/activity`, 250, pageParam),
       transformResponse: (response) => response.data,
       providesTags: ["Activity"],
     }),

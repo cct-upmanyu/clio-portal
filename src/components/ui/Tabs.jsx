@@ -31,7 +31,7 @@ function Tabs({ label, tabs, value, onChange, idPrefix = 'tab' }) {
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.id)}
             onKeyDown={(e) => handleKeyDown(e, index)}
-            className={`flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm ${
+            className={`flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm max-sm:h-9 max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] ${
               selected ? 'font-semibold text-brand shadow-[inset_0_-2px_0_var(--color-brand)]' : 'font-medium text-muted hover:text-ink'
             }`}
           >
@@ -48,9 +48,9 @@ function Tabs({ label, tabs, value, onChange, idPrefix = 'tab' }) {
   )
 }
 
-export function TabPanel({ id, idPrefix = 'tab', children }) {
+export function TabPanel({ id, idPrefix = 'tab', className, children }) {
   return (
-    <div role="tabpanel" id={`${idPrefix}-panel-${id}`} aria-labelledby={`${idPrefix}-${id}`}>
+    <div role="tabpanel" id={`${idPrefix}-panel-${id}`} aria-labelledby={`${idPrefix}-${id}`} className={className}>
       {children}
     </div>
   )

@@ -2,7 +2,7 @@ import { IoDocumentsOutline, IoHomeOutline } from 'react-icons/io5'
 import { LiaMoneyBillSolid } from 'react-icons/lia'
 import {
   LuBriefcase, LuEllipsisVertical, LuHistory, LuLayoutDashboard, LuListChecks, LuMailPlus, LuMessagesSquare, LuPencil, LuSearch,
-  LuShieldOff, LuUserCheck, LuUserPlus, LuUserX, LuUsers,
+  LuExternalLink, LuFolder, LuShieldOff, LuTrash2, LuUserCheck, LuUserPlus, LuUserX, LuUsers,
 } from 'react-icons/lu'
 import { MdOutlineCalendarToday } from 'react-icons/md'
 
@@ -195,3 +195,6 @@ export const UserXIcon = (props) => <LuUserX {...hidden} {...props} />
 export const ShieldOffIcon = (props) => <LuShieldOff {...hidden} {...props} />
 export const ResendIcon = (props) => <LuMailPlus {...hidden} {...props} />
 export const EditIcon = (props) => <LuPencil {...hidden} {...props} />
+export const TrashIcon = (props) => <LuTrash2 {...hidden} {...props} />
+export const FolderIcon = (props) => <LuFolder {...hidden} {...props} />
+export const ExternalLinkIcon = (props) => <LuExternalLink {...hidden} {...props} />

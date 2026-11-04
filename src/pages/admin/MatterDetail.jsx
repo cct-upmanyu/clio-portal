@@ -6,18 +6,20 @@ import StatusPill from '../../components/ui/StatusPill'
 import Tabs, { TabPanel } from '../../components/ui/Tabs'
 import { ChevronLeftIcon, PlusIcon, RefreshIcon } from '../../components/ui/icons'
 import InviteUserDialog from '../../components/admin/InviteUserDialog'
+import MatterDetailSkeleton from '../../components/admin/MatterDetailSkeleton'
 import MatterEvents from '../../components/admin/MatterEvents'
 import MatterTasks from '../../components/admin/MatterTasks'
 import MatterUsers from '../../components/admin/MatterUsers'
+import MatterDocuments from '../../components/documents/MatterDocuments'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import MatterChat from '../../components/messages/MatterChat'
-import { useAdminMatters } from '../../hooks/useAdminMatters'
+import { useAdminMatter } from '../../hooks/useAdminMatters'
 import { useInviteUser } from '../../hooks/useInviteUser'
 import { useGetAdminMatterActivityInfiniteQuery } from '../../redux/api/activityApi'
 import { formatDay } from '../../utils/dates'
 
-const TABS = ['messages', 'tasks', 'events', 'users', 'activity']
-const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events', users: 'Users', activity: 'Activity' }
+const TABS = ['messages', 'tasks', 'events', 'documents', 'users', 'activity']
+const TAB_LABELS = { messages: 'Communication', tasks: 'Tasks', events: 'Events', documents: 'Documents', users: 'Users', activity: 'Activity' }
 
 // Everything that happened on the matter: invitations, acceptances, removals, documents… (firm view: all of it)
 function MatterActivity({ crmMatterId }) {
@@ -32,29 +34,39 @@ function MatterActivity({ crmMatterId }) {
 function MatterDetail() {
   const { matterId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { matters, isLoading, refetch, isFetching } = useAdminMatters()
+  const { matter, isLoading, isError, notFound, refetch, isFetching } = useAdminMatter(matterId)
   const { inviteOpen, openInvite, closeInvite, invite } = useInviteUser()
   const [creatingTask, setCreatingTask] = useState(false)
   const [creatingEvent, setCreatingEvent] = useState(false)
 
   if (isLoading) {
+    const openTab = TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
     return (
-      <Page>
-        <p className="py-8 text-center text-sm text-muted">Loading matter…</p>
+      <Page scroll={false}>
+        <MatterDetailSkeleton tabs={TABS.map((id) => ({ id, label: TAB_LABELS[id] }))} tab={openTab} />
       </Page>
     )
   }
-  const matter = matters.find((m) => m.id === matterId)
-  if (!matter) return <Navigate to="/matters" replace />
+  if (notFound) return <Navigate to="/matters" replace />
+  if (isError || !matter) {
+    return (
+      <Page>
+        <div className="flex flex-col items-center gap-3 py-10">
+          <p className="text-sm text-muted">We couldn&apos;t load this matter.</p>
+          <button type="button" onClick={refetch} className="cursor-pointer text-sm font-semibold text-brand hover:text-brand-dark">Try again</button>
+        </div>
+      </Page>
+    )
+  }
 
   const tab = TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
   const label = `${matter.number} · ${matter.name}`
   const hasAcceptedClient = matter.contacts.some((c) => c.invitation === 'accepted')
 
-  // The header's + adds to the open tab (Communication and Activity have nothing to add)
+  // The header's + adds to the open tab (Communication, Documents and Activity have their own or nothing to add)
   const closed = matter.status === 'Closed'
   const addAction = {
-    users: { label: 'Invite client', onClick: () => openInvite(matter.crmMatterId), disabledReason: closed ? 'This matter is closed' : null },
+    users: { label: 'Invite client', onClick: () => openInvite(matter.crmMatterId, label), disabledReason: closed ? 'This matter is closed' : null },
     tasks: {
       label: 'New task',
       onClick: () => setCreatingTask(true),
@@ -114,8 +126,12 @@ function MatterDetail() {
         />
       </div>
 
-      {/* Communication fills the rest of the screen and scrolls inside; the lists scroll as a whole */}
-      {tab === 'messages' ? (
+      {/* Communication and Documents fill the rest of the screen and scroll inside; the lists scroll as a whole */}
+      {tab === 'documents' ? (
+        <div role="tabpanel" id="matter-panel-documents" aria-labelledby="matter-documents" className="flex min-h-0 flex-1 flex-col bg-white px-6 pt-2 max-sm:px-3">
+          <MatterDocuments key={matter.crmMatterId} crmMatterId={matter.crmMatterId} firm />
+        </div>
+      ) : tab === 'messages' ? (
         <div role="tabpanel" id="matter-panel-messages" aria-labelledby="matter-messages" className="flex min-h-0 flex-1 flex-col">
           <MatterChat
             key={matter.crmMatterId}
@@ -132,13 +148,13 @@ function MatterDetail() {
           <TabPanel id={tab} idPrefix="matter">
             {tab === 'tasks' && <MatterTasks matter={matter} creating={creatingTask} onCreatingChange={setCreatingTask} />}
             {tab === 'events' && <MatterEvents matter={matter} creating={creatingEvent} onCreatingChange={setCreatingEvent} />}
-            {tab === 'users' && <MatterUsers matter={matter} onInvite={() => openInvite(matter.crmMatterId)} />}
+            {tab === 'users' && <MatterUsers matter={matter} onInvite={() => openInvite(matter.crmMatterId, label)} />}
             {tab === 'activity' && <MatterActivity crmMatterId={matter.crmMatterId} />}
           </TabPanel>
         </div>
       )}
 
-      <InviteUserDialog open={inviteOpen} onClose={closeInvite} crmMatterId={matter.crmMatterId} onInvite={invite} />
+      <InviteUserDialog open={inviteOpen} onClose={closeInvite} crmMatterId={matter.crmMatterId} matterLabel={label} onInvite={invite} />
     </Page>
   )
 }

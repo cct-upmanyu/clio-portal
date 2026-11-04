@@ -1,5 +1,5 @@
 import {
-  CalendarIcon, CheckCircleIcon, CloseIcon, DocumentsIcon, EditIcon, InviteIcon, ResendIcon, ShieldIcon, ShieldOffIcon,
+  CalendarIcon, CheckCircleIcon, CloseIcon, DocumentsIcon, DownloadIcon, EditIcon, EyeIcon, InviteIcon, ResendIcon, ShieldIcon, ShieldOffIcon,
   TaskIcon, UserCheckIcon, UsersIcon, UserXIcon,
 } from '../components/ui/icons'
 
@@ -59,7 +59,18 @@ export function describeActivity(event, { inMatter = false, viewer = 'firm' } = 
     case 'user.mfa_reset':
       return { icon: ShieldOffIcon, module: 'security', text: [actor, ' reset ', subject, '’s 2FA'] }
     case 'document.uploaded':
-      return { icon: DocumentsIcon, module: 'document', text: [actor, ' uploaded ', ...named(event.details?.documentName, 'a document'), ...onMatter] }
+      return {
+        icon: DocumentsIcon,
+        module: 'document',
+        text: [actor, ' uploaded ', ...named(event.details?.documentName, 'a document'), ...(event.details?.folderName ? [' to ', strong(event.details.folderName)] : []), ...onMatter],
+      }
+    case 'document.deleted':
+      return { icon: CloseIcon, module: 'document', text: [actor, ' removed the document ', ...named(event.details?.documentName, ''), ...onMatter] }
+    // Viewed and downloaded are on the firm's timelines only
+    case 'document.viewed':
+      return { icon: EyeIcon, module: 'document', text: [actor, ' viewed ', ...named(event.details?.documentName, 'a document'), ...onMatter] }
+    case 'document.downloaded':
+      return { icon: DownloadIcon, module: 'document', text: [actor, ' downloaded ', ...named(event.details?.documentName, 'a document'), ...onMatter] }
     case 'event.created':
       return { icon: CalendarIcon, module: 'meeting', text: [actor, ' scheduled the meeting ', ...named(title, ''), ...onMatter] }
     case 'event.updated':

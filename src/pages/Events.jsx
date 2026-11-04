@@ -1,3 +1,4 @@
+import RowsSkeleton from '../components/ui/RowsSkeleton'
 import { useState } from 'react'
 import Section from '../components/ui/Section'
 import EmptyState from '../components/ui/EmptyState'
@@ -46,7 +47,7 @@ function Events() {
       <PageHeader title="Events" description="Meetings, hearings and deadlines for this matter." />
       <Section>
         {isLoading ? (
-          <p className="py-6 text-center text-sm text-muted">Loading events…</p>
+          <RowsSkeleton lead="date" label="Loading meetings…" />
         ) : data.length === 0 ? (
           <EmptyState icon={CalendarIcon} title="No events yet">
             We'll let you know when a new event is scheduled.

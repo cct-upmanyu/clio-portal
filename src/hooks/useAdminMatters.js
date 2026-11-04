@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { useGetAdminMattersQuery } from '../redux/api/adminApi'
+import { useGetAdminMatterQuery } from '../redux/api/adminApi'
 
-// Every synced matter for the Admin Console, in the shape its pages use
-const toMatter = (matter) => ({
+// A synced matter for the Admin Console, in the shape its pages use
+export const toAdminMatter = (matter) => ({
   id: String(matter.id),
   crmMatterId: matter.crmMatterId,
   number: matter.number || '—',
@@ -16,8 +16,9 @@ const toMatter = (matter) => ({
   removedContacts: (matter.contacts || []).filter((c) => c.invitation === 'removed'),
 })
 
-export function useAdminMatters() {
-  const { data, isLoading, isError, refetch, isFetching } = useGetAdminMattersQuery()
-  const matters = useMemo(() => (data ?? []).map(toMatter), [data])
-  return { matters, isLoading, isError, refetch, isFetching }
+// One matter's page (by its portal id)
+export function useAdminMatter(matterId) {
+  const { data, isLoading, isError, error, refetch, isFetching } = useGetAdminMatterQuery(matterId, { skip: !matterId })
+  const matter = useMemo(() => (data ? toAdminMatter(data) : null), [data])
+  return { matter, isLoading, isError, notFound: error?.status === 404, refetch, isFetching }
 }

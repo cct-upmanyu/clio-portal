@@ -5,6 +5,24 @@ import { TimelineIcon } from '../ui/icons'
 import { ACTIVITY_MODULES, describeActivity } from '../../utils/activity'
 import { formatDateTime } from '../../utils/dates'
 
+const SKELETON = [78, 62, 86, 54, 70, 66]
+
+function SkeletonFeed({ compact }) {
+  return (
+    <ol aria-hidden="true" className={`flex flex-col pt-1 ${compact ? 'gap-2' : 'gap-4'}`}>
+      {SKELETON.map((width, i) => (
+        <li key={i} className={`flex gap-3 ${compact ? 'py-1' : ''}`}>
+          <span className="mt-0.5 size-8 shrink-0 animate-pulse rounded-full bg-line" />
+          <span className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+            <span className="h-2.5 animate-pulse rounded-full bg-line" style={{ width: `${width}%` }} />
+            <span className="h-2 w-32 max-w-[45%] animate-pulse rounded-full bg-subtle" />
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 // A timeline from one of the activityApi infinite queries. `inMatter` / `viewer`: see describeActivity.
 // `loadMore`: offer the next page when there is one (the dashboard shows only the latest page).
 // `linkToMatter` (Admin Console): an event on a matter opens that matter's Activity tab.
@@ -12,7 +30,14 @@ function ActivityFeed({ result, inMatter = false, viewer = 'firm', loadMore = tr
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } = result
   const events = data?.pages.flatMap((page) => page.events) ?? []
 
-  if (isLoading) return <p className="py-6 text-center text-sm text-muted">Loading activity…</p>
+  if (isLoading) {
+    return (
+      <div role="status" aria-busy="true">
+        <span className="sr-only">Loading activity…</span>
+        <SkeletonFeed compact={linkToMatter} />
+      </div>
+    )
+  }
   if (isError) {
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted">

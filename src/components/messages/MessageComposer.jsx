@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import FileTile from '../ui/FileTile'
 import { CloseIcon, PaperclipIcon, SendIcon } from '../ui/icons'
-import { formatBytes } from '../../utils/files'
+import { DOCUMENT_ACCEPT, formatBytes } from '../../utils/files'
 
 const MAX_HEIGHT = 160
 
@@ -75,6 +75,7 @@ function MessageComposer({ onSend, onTyping, allowAttachments = true }) {
           type="file"
           multiple
           hidden
+          accept={DOCUMENT_ACCEPT}
           onChange={(e) => {
             const picked = [...e.target.files]
             setFiles((prev) => [...prev, ...picked])

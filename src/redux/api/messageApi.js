@@ -8,15 +8,22 @@ export const messageApi = baseApi.injectEndpoints({
       // { messages, firmReadAt, contactReads }: the read times are for read receipts; contactReads (who
       // among the clients has read) only comes to firm users
       // info: { per_page, count, more_records }: more_records = older messages exist beyond this page
-      transformResponse: ({ data }) => ({ messages: data.messages, firmReadAt: data.firmReadAt ?? null, contactReads: data.contactReads ?? null, info: data.info ?? null }),
+      // attachmentLimits: { maxBytes, extensions } for files sent in the chat
+      transformResponse: ({ data }) => ({
+        messages: data.messages, firmReadAt: data.firmReadAt ?? null, contactReads: data.contactReads ?? null,
+        info: data.info ?? null, attachmentLimits: data.attachmentLimits ?? null,
+      }),
       providesTags: (result, error, crmMatterId) => [{ type: "Messages", id: crmMatterId }],
     }),
+    // { crmMatterId, body?, documentId? (a file uploaded first, see useDocumentUpload), clientMessageId }
     sendMessage: builder.mutation({
-      query: ({ crmMatterId, body, clientMessageId }) => ({
+      query: ({ crmMatterId, body, documentId, clientMessageId }) => ({
         url: `/messages/matters/${crmMatterId}/messages`,
         method: "POST",
-        body: { body, clientMessageId },
+        body: { body, documentId, clientMessageId },
       }),
+      // A file sent in the chat is also in the matter's documents
+      invalidatesTags: (result, error, { documentId }) => (!error && documentId ? ["Documents"] : []),
       transformResponse: (response) => response.data,
       async onQueryStarted({ crmMatterId }, { dispatch, queryFulfilled }) {
         try {

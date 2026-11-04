@@ -84,3 +84,10 @@ export const formatDay = (value) => {
   const date = year && month && day ? new Date(year, month - 1, day) : new Date(value)
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+// Today as "Wednesday, November 4", in the display time zone
+export const formatToday = () => format(Date.now(), { weekday: 'long', month: 'long', day: 'numeric' })
+
+// A message's time as "Wed, May 01, 2026 at 3:44 PM"
+export const formatMessageTime = (value) =>
+  `${format(value, { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' })} at ${formatTime(value)}`

@@ -1,3 +1,4 @@
+import RowsSkeleton from '../components/ui/RowsSkeleton'
 import { useState } from 'react'
 import Button from '../components/ui/Button'
 import Section from '../components/ui/Section'
@@ -75,7 +76,7 @@ function Tasks() {
         />
         <TabPanel id={tab} idPrefix="tasks">
           {isLoading ? (
-            <p className="py-6 text-center text-sm text-muted">Loading tasks…</p>
+            <RowsSkeleton pills={1} label="Loading tasks…" />
           ) : visible.length > 0 ? (
             <ul className="flex flex-col divide-y divide-divider">
               {pageTasks.map((task) => (

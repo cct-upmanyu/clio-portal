@@ -1,7 +1,7 @@
 export const labelClass = 'text-sm font-medium text-ink'
 
 const inputBaseClass =
-  'h-11 w-full rounded-lg border bg-white px-3 text-[15px] text-ink placeholder:text-muted focus:outline-none'
+  'h-11 w-full rounded-lg border bg-white px-3 text-[15px] text-ink placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-body'
 
 export const inputClass =
   `${inputBaseClass} border-field focus:border-brand focus:shadow-[0_0_0_3px_rgba(11,92,173,0.15)]`

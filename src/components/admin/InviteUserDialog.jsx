@@ -39,29 +39,37 @@ function Field({ id, label, error, children }) {
 
 // A client invitation is for one matter; an email that already has a client account gets an email
 // to accept the new matter instead. An admin invitation has no matter.
-// crmMatterId: preselects that matter (e.g. opened from a matter's page).
+// crmMatterId: opened for that matter (its page, its row, the dashboard): the matter can't be changed
+// and the invitation is for a client.
+// adminOnly (Users page): only the Admin role; clients are invited from their matter.
 // onInvite(body) resolves { sent: true } or { fieldErrors } from the server.
-function InviteUserDialog({ open, onClose, crmMatterId, onInvite }) {
+// matterLabel: how the locked matter is shown ("DS-1 · Smith v. Jones").
+function InviteUserDialog({ open, onClose, crmMatterId, matterLabel, onInvite, adminOnly = false }) {
   const id = useId()
-  const { data: usersData } = useGetAdminUsersQuery(undefined, { skip: !open })
-  const { data: matters = [], isLoading: mattersLoading } = useGetAdminMattersQuery(undefined, { skip: !open })
-  const roles = usersData?.roles ?? []
-  const clientRoleId = roles.find((role) => role.name === 'Client')?.id
+  // Only for the roles and the firm's time zone that come with the list
+  const { data: usersData } = useGetAdminUsersQuery({ perPage: 1 }, { skip: !open })
+  const allRoles = usersData?.roles ?? []
+  const forMatter = Boolean(crmMatterId) && !adminOnly
+  const roles = adminOnly ? allRoles.filter((role) => role.name !== 'Client') : forMatter ? allRoles.filter((role) => role.name === 'Client') : allRoles
+  const clientRoleId = allRoles.find((role) => role.name === 'Client')?.id
+  const startRoleId = adminOnly ? roles[0]?.id : clientRoleId
   // The firm's own time zone (DEFAULT_TIMEZONE) unless changed: most clients are local
   const defaultTimezone = usersData?.defaultTimezone
 
-  const [form, setForm] = useState(() => emptyForm(clientRoleId, crmMatterId, defaultTimezone))
+  const [form, setForm] = useState(() => emptyForm(startRoleId, crmMatterId, defaultTimezone))
   const [errors, setErrors] = useState({})
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setForm(emptyForm(clientRoleId, crmMatterId, defaultTimezone))
+      setForm(emptyForm(startRoleId, crmMatterId, defaultTimezone))
       setErrors({})
     }
-  }, [open, crmMatterId, clientRoleId, defaultTimezone])
+  }, [open, crmMatterId, startRoleId, defaultTimezone])
 
-  const isClient = form.role === clientRoleId
+  const isClient = !adminOnly && form.role === clientRoleId
+  // Only when a matter has to be chosen: the newest 200 open and pending ones
+  const { data: matterPages, isLoading: mattersLoading } = useGetAdminMattersQuery({ perPage: 200 }, { skip: !open || !isClient || forMatter })
 
   const set = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -104,7 +112,7 @@ function InviteUserDialog({ open, onClose, crmMatterId, onInvite }) {
     }
   }
 
-  const openMatters = matters.filter((m) => m.status !== 'Closed')
+  const openMatters = (matterPages?.matters ?? []).filter((m) => m.status !== 'Closed')
 
   return (
     <Modal
@@ -112,11 +120,13 @@ function InviteUserDialog({ open, onClose, crmMatterId, onInvite }) {
       onClose={onClose}
       dismissible={!sending}
       title={isClient ? "Invite to the Client Portal" : "Invite to the Admin Console"}
-      description="They'll get an email to accept the invitation and set up their sign-in."
+      description={adminOnly
+        ? "They'll get an email to set up their sign-in. To invite a client, open their matter and invite them from there."
+        : "They'll get an email to accept the invitation and set up their sign-in."}
       footer={(
         <>
           <Button variant="secondary" onClick={onClose} disabled={sending}>Cancel</Button>
-          <Button type="submit" form={`${id}-form`} icon={InviteIcon} loading={sending} disabled={!clientRoleId}>Send invitation</Button>
+          <Button type="submit" form={`${id}-form`} icon={InviteIcon} loading={sending} disabled={!startRoleId}>Send invitation</Button>
         </>
       )}
     >
@@ -140,21 +150,27 @@ function InviteUserDialog({ open, onClose, crmMatterId, onInvite }) {
           <input type="email" autoComplete="off" inputMode="email" {...fieldProps('email')} />
         </Field>
 
+        {!adminOnly && !forMatter && (
         <Field id={`${id}-role`} label="Role" error={errors.role}>
           <select {...fieldProps('role')}>
             {roles.length === 0 && <option value="">Loading roles…</option>}
             {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
           </select>
         </Field>
+        )}
 
         {isClient && (
           <Field id={`${id}-crmMatterId`} label="Matter" error={errors.crmMatterId}>
-            <select {...fieldProps('crmMatterId')} disabled={mattersLoading}>
-              <option value="">{mattersLoading ? 'Loading matters…' : openMatters.length === 0 ? 'No open matters synced yet' : 'Choose a matter…'}</option>
-              {openMatters.map((m) => (
-                <option key={m.id} value={m.crmMatterId}>{[m.number, m.name].filter(Boolean).join(' · ')}</option>
-              ))}
-            </select>
+            {forMatter ? (
+              <input id={`${id}-crmMatterId`} type="text" value={matterLabel || 'This matter'} disabled readOnly className={inputClass} />
+            ) : (
+              <select {...fieldProps('crmMatterId')} disabled={mattersLoading}>
+                <option value="">{mattersLoading ? 'Loading matters…' : openMatters.length === 0 ? 'No open matters synced yet' : 'Choose a matter…'}</option>
+                {openMatters.map((m) => (
+                  <option key={m.id} value={m.crmMatterId}>{[m.number, m.name].filter(Boolean).join(' · ')}</option>
+                ))}
+              </select>
+            )}
           </Field>
         )}
 

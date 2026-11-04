@@ -7,22 +7,38 @@ function pageList(page, pageCount) {
   return sorted.flatMap((p, i) => (i > 0 && p - sorted[i - 1] > 1 ? ['gap-' + p, p] : [p]))
 }
 
-const buttonClass = 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-40'
+const buttonClass = 'flex size-9 max-sm:size-8 max-sm:text-[13px] cursor-pointer items-center justify-center rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-40'
 
-// mt-auto: inside a flex-1 column it sits at the bottom of the panel
-function Pagination({ page, pageSize, total, onPageChange, itemLabel = 'items' }) {
+// mt-auto: inside a flex-1 column it sits at the bottom of the panel.
+// `pageSizeOptions` + `onPageSizeChange`: a "per page" select next to the count.
+function Pagination({ page, pageSize, total, onPageChange, itemLabel = 'items', pageSizeOptions, onPageSizeChange }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, total)
 
   return (
-    <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4">
-      <p className="text-[13px] text-muted">
-        Showing <span className="font-medium text-ink">{from}–{to}</span> of <span className="font-medium text-ink">{total}</span> {itemLabel}
-      </p>
+    <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4 max-sm:gap-x-2 max-sm:gap-y-1.5 max-sm:pt-2.5">
+      <div className="flex shrink-0 items-center gap-3 max-sm:gap-2">
+        <p className="text-[13px] text-muted max-sm:text-xs">
+          <span className="max-sm:hidden">Showing </span><span className="font-medium text-ink">{from}–{to}</span> of <span className="font-medium text-ink">{total}</span><span className="max-sm:hidden"> {itemLabel}</span>
+        </p>
+        {pageSizeOptions && onPageSizeChange && (
+          <label className="flex items-center gap-1.5 text-[13px] text-muted max-sm:text-xs">
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              aria-label={`${itemLabel} per page`}
+              className="h-8 cursor-pointer rounded-lg border border-field bg-white pl-2 pr-1 text-[13px] font-medium text-ink focus:border-brand focus:outline-none max-sm:h-7 max-sm:text-xs"
+            >
+              {pageSizeOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span className="max-sm:hidden">per page</span>
+          </label>
+        )}
+      </div>
 
       {pageCount > 1 && (
-        <nav aria-label="Pagination" className="flex items-center gap-1">
+        <nav aria-label="Pagination" className="ml-auto flex items-center gap-1 max-sm:gap-0.5">
           <button type="button" onClick={() => onPageChange(page - 1)} disabled={page === 1} aria-label="Previous page" className={`${buttonClass} text-body hover:bg-subtle`}>
             <ChevronLeftIcon className="size-4" />
           </button>

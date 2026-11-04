@@ -1,21 +1,18 @@
+import RowsSkeleton from '../../components/ui/RowsSkeleton'
 import { Link } from 'react-router-dom'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import Page from '../../components/ui/Page'
-import PageHeader from '../../components/ui/PageHeader'
 import Section from '../../components/ui/Section'
 import SectionHeader from '../../components/ui/SectionHeader'
 import {
-  CalendarIcon, InboxIcon, InviteIcon, MattersIcon, MessageIcon, ResendIcon, TaskIcon, UserPlusIcon, UsersIcon,
+  CalendarIcon, InboxIcon, InviteIcon, MattersIcon, MessageIcon, ResendIcon, TaskIcon, UsersIcon,
 } from '../../components/ui/icons'
-import InviteUserDialog from '../../components/admin/InviteUserDialog'
 import StatTile from '../../components/admin/StatTile'
-import { useAdminMatters } from '../../hooks/useAdminMatters'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { useInviteUser } from '../../hooks/useInviteUser'
 import { useReinvite } from '../../hooks/useReinvite'
-import { useGetAdminDashboardQuery, useGetAdminUsersQuery } from '../../redux/api/adminApi'
+import { useGetAdminDashboardQuery, useGetAdminMattersQuery, useGetAdminUserStatsQuery } from '../../redux/api/adminApi'
 import { useGetFirmActivityInfiniteQuery } from '../../redux/api/activityApi'
 import { useGetTasksDueSoonQuery } from '../../redux/api/taskApi'
 import { useGetUpcomingEventsQuery } from '../../redux/api/eventApi'
@@ -24,7 +21,7 @@ import EventItem from '../../components/ui/EventItem'
 import { taskStatus } from '../../utils/tasks'
 import ActivityFeed from '../../components/activity/ActivityFeed'
 import { greeting } from '../../utils/greeting'
-import { daysAgo, formatShort } from '../../utils/dates'
+import { daysAgo, formatShort, formatToday } from '../../utils/dates'
 
 const PREVIEW = 5
 const WEEK_DAYS = 7
@@ -81,7 +78,7 @@ function TasksDueSoon() {
     <Section>
       <SectionHeader title="Tasks due soon" linkLabel="All matters" to="/matters" />
       {isLoading ? (
-        <p className="py-6 text-center text-sm text-muted">Loading tasks…</p>
+        <RowsSkeleton rows={3} label="Loading tasks…" />
       ) : tasks.length > 0 ? (
         <ul className="flex flex-col divide-y divide-divider">
           {tasks.map((task) => {
@@ -117,7 +114,7 @@ function UpcomingEvents() {
     <Section>
       <SectionHeader title="Upcoming events" linkLabel="All matters" to="/matters" />
       {isLoading ? (
-        <p className="py-6 text-center text-sm text-muted">Loading events…</p>
+        <RowsSkeleton rows={3} lead="date" label="Loading meetings…" />
       ) : events.length > 0 ? (
         <div className="flex flex-col divide-y divide-divider">
           {events.map((event) => {
@@ -140,17 +137,17 @@ function UpcomingEvents() {
   )
 }
 
-// Invitations not accepted yet, across every matter, newest first
-function WaitingForClients({ matters }) {
+// Invitations not accepted yet, across every matter, newest first (the server sends the latest few)
+function WaitingForClients({ invitations, loading }) {
   const { reinvite, sendingTo } = useReinvite()
-  const waiting = matters
-    .flatMap((matter) => matter.contacts.filter((c) => c.invitation !== 'accepted').map((contact) => ({ ...contact, matter })))
-    .sort((a, b) => new Date(b.invitedAt || 0) - new Date(a.invitedAt || 0))
+  const waiting = invitations?.latest ?? []
 
   return (
     <Section>
       <SectionHeader title="Waiting for the client to accept" linkLabel="All matters" to="/matters" />
-      {waiting.length > 0 ? (
+      {loading ? (
+        <RowsSkeleton rows={3} label="Loading invitations…" />
+      ) : waiting.length > 0 ? (
         <ul className="flex flex-col divide-y divide-divider">
           {waiting.slice(0, PREVIEW).map(({ userId, name, invitation, invitedAt, matter }) => (
             <li key={`${matter.id}-${userId}`} className="flex items-center gap-3 py-3">
@@ -186,58 +183,20 @@ function WaitingForClients({ matters }) {
   )
 }
 
-// Open or pending matters with nobody on them (removed clients don't count)
-function MattersWithoutClient({ matters, onInvite }) {
-  const withoutClient = matters.filter((m) => m.status !== 'Closed' && m.contacts.length === 0)
-  return (
-    <Section>
-      <SectionHeader title="Matters without a client" linkLabel="All matters" to="/matters" />
-      {withoutClient.length > 0 ? (
-        <ul className="flex flex-col divide-y divide-divider">
-          {withoutClient.slice(0, PREVIEW).map((matter) => (
-            <li key={matter.id} className="flex items-center gap-3 py-3">
-              <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning">
-                <MattersIcon className="size-[18px]" />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <Link to={`/matters/${matter.id}`} className="truncate text-sm font-medium hover:text-brand">{matter.number} · {matter.name}</Link>
-                <span className="truncate text-[13px] text-muted">{matter.attorney} · {matter.stage} · {matter.status}</span>
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={UserPlusIcon}
-                onClick={() => onInvite(matter.crmMatterId)}
-                aria-label={`Invite a client to ${matter.number}`}
-                className="max-sm:size-9 max-sm:px-0"
-              >
-                <span className="max-sm:sr-only">Invite</span>
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState title="Every matter has a client">All open and pending matters have someone invited.</EmptyState>
-      )}
-    </Section>
-  )
-}
-
 function AdminDashboard() {
   const { firstName } = useCurrentUser()
-  const { matters, isLoading: mattersLoading } = useAdminMatters()
-  const { data: usersData, isLoading: usersLoading } = useGetAdminUsersQuery()
+  // Only the counts: one matter is the smallest page
+  const { data: matterCounts, isLoading: mattersLoading } = useGetAdminMattersQuery({ perPage: 1 }, { refetchOnFocus: true })
+  const { data: userStats, isLoading: usersLoading } = useGetAdminUserStatsQuery()
   const { data: inbox, isLoading: inboxLoading } = useGetAdminDashboardQuery(undefined, { refetchOnFocus: true })
   const { data: dueTasks = [], isLoading: tasksLoading } = useGetTasksDueSoonQuery(10, { refetchOnFocus: true })
   const { data: upcoming = [], isLoading: eventsLoading } = useGetUpcomingEventsQuery(10, { refetchOnFocus: true })
   const activity = useGetFirmActivityInfiniteQuery({ perPage: 5 }, { refetchOnFocus: true })
-  const { inviteOpen, inviteCrmMatterId, openInvite, closeInvite, invite } = useInviteUser()
 
   const count = (list, fn) => list.filter(fn).length
-  const clients = (usersData?.users ?? []).filter((u) => u.roleName === 'Client')
-  const signedIn = (usersData?.users ?? []).filter((u) => u.status === 'active')
-  const waiting = matters.reduce((n, m) => n + count(m.contacts, (c) => c.invitation !== 'accepted'), 0)
-  const expired = matters.reduce((n, m) => n + count(m.contacts, (c) => c.invitation === 'expired'), 0)
+  const statusCount = (status) => matterCounts?.counts?.[status] ?? 0
+  const waiting = inbox?.invitations?.waiting ?? 0
+  const expired = inbox?.invitations?.expired ?? 0
   const unread = inbox?.totalUnread ?? 0
   const unreadMatters = inbox?.unreadMessages?.length ?? 0
   const overdue = count(dueTasks, (t) => taskStatus(t).tone === 'overdue')
@@ -248,14 +207,17 @@ function AdminDashboard() {
   const capped = (n, list) => (list.length >= 10 && n >= 10 ? '10+' : n)
 
   return (
-    <Page>
-      <PageHeader
-        title={firstName ? `${greeting()}, ${firstName}` : greeting()}
-        description="Here's what's happening in the Client Portal."
-        action={<Button icon={UserPlusIcon} onClick={() => openInvite()}>Invite client</Button>}
-      />
+    // The greeting stays put; everything under it scrolls
+    <Page scroll={false}>
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-line bg-white px-6 py-4 max-sm:px-4 max-sm:py-3">
+        <h1 className="text-xl font-semibold text-ink max-sm:text-lg">
+          {firstName ? `${greeting()}, ${firstName}` : greeting()}
+        </h1>
+        <p className="text-[13px] text-muted">{formatToday()}</p>
+      </div>
 
-      <Section aria-label="Overview" className="bg-canvas">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <Section aria-label="Overview" className="bg-canvas max-sm:py-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 max-sm:gap-2">
           <StatTile
             to="/matters"
@@ -263,8 +225,8 @@ function AdminDashboard() {
             tone="brand"
             label="Open matters"
             loading={mattersLoading}
-            value={count(matters, (m) => m.status === 'Open')}
-            detail={`${count(matters, (m) => m.status === 'Pending')} pending · ${count(matters, (m) => m.status === 'Closed')} closed`}
+            value={statusCount('Open')}
+            detail={`${statusCount('Pending')} pending · ${statusCount('Closed')} closed`}
           />
           <StatTile
             to="/"
@@ -300,7 +262,7 @@ function AdminDashboard() {
             icon={InviteIcon}
             tone="amber"
             label="Invitations waiting"
-            loading={mattersLoading}
+            loading={inboxLoading}
             value={waiting}
             detail={expired > 0 ? `${expired} expired · resend them` : 'Sent but not accepted yet'}
             alert={expired > 0 ? 'warning' : undefined}
@@ -311,8 +273,10 @@ function AdminDashboard() {
             tone="emerald"
             label="Active clients"
             loading={usersLoading}
-            value={count(clients, (u) => u.status === 'active')}
-            detail={`2FA on for ${count(signedIn, (u) => u.mfaEnabled)} of ${signedIn.length} people`}
+            value={userStats?.activeClients ?? 0}
+            detail={userStats?.activeWithMfa != null
+              ? `2FA on for ${userStats.activeWithMfa} of ${userStats.activeUsers} people`
+              : `${userStats?.activeUsers ?? 0} people can sign in`}
           />
         </div>
       </Section>
@@ -325,9 +289,6 @@ function AdminDashboard() {
 
           <UpcomingEvents />
 
-          <WaitingForClients matters={matters} />
-
-          <MattersWithoutClient matters={matters} onInvite={openInvite} />
         </div>
 
         <div className="flex min-w-0 flex-col">
@@ -336,10 +297,11 @@ function AdminDashboard() {
             {/* The latest 5 across the firm; the Activity page has everything */}
             <ActivityFeed result={activity} loadMore={false} linkToMatter />
           </Section>
+
+          <WaitingForClients invitations={inbox?.invitations} loading={inboxLoading} />
         </div>
       </div>
-
-      <InviteUserDialog open={inviteOpen} onClose={closeInvite} crmMatterId={inviteCrmMatterId} onInvite={invite} />
+      </div>
     </Page>
   )
 }

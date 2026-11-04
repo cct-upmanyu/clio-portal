@@ -9,13 +9,15 @@ const KINDS = {
   task: { icon: TaskIcon, tile: 'bg-warning-soft text-warning' },
 }
 
-// One clickable row: icon tile, title, details line, optional trailing text.
-// Put several in a `divide-y divide-divider` container to get separators.
-function ListItem({ to, kind = 'file', title, meta, trailing, unread = false }) {
+// One clickable row: icon tile, title, details line, optional trailing text. A link (`to`), or a button
+// (`onClick`, e.g. opening a preview). Put several in a `divide-y divide-divider` container to get separators.
+function ListItem({ to, onClick, kind = 'file', title, meta, trailing, unread = false }) {
   const { icon: Icon, tile } = KINDS[kind] ?? KINDS.file
+  const Row = onClick ? 'button' : Link
+  const rowProps = onClick ? { type: 'button', onClick } : { to }
 
   return (
-    <Link to={to} className="group flex min-h-16 items-center gap-3 py-2.5">
+    <Row {...rowProps} className="group flex min-h-16 w-full cursor-pointer items-center gap-3 py-2.5 text-left">
       <span aria-hidden="true" className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tile}`}>
         <Icon className="size-[18px]" />
       </span>
@@ -35,7 +37,7 @@ function ListItem({ to, kind = 'file', title, meta, trailing, unread = false }) 
 
       {trailing && <span className="shrink-0 whitespace-nowrap text-xs text-muted">{trailing}</span>}
       <ChevronRightIcon className="size-[18px] shrink-0 text-muted" />
-    </Link>
+    </Row>
   )
 }
 

@@ -1,3 +1,4 @@
+import RowsSkeleton from '../ui/RowsSkeleton'
 import { useState } from 'react'
 import Button from '../ui/Button'
 import ConfirmDialog from '../ui/ConfirmDialog'
@@ -129,7 +130,7 @@ function MatterEvents({ matter, creating, onCreatingChange }) {
   return (
     <div className="flex flex-col gap-4 py-2">
       {isLoading ? (
-        <p className="py-6 text-center text-sm text-muted">Loading meetings…</p>
+        <RowsSkeleton lead="date" label="Loading meetings…" />
       ) : isError ? (
         <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted">
           Couldn&apos;t load the meetings.

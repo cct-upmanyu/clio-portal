@@ -60,8 +60,8 @@ function Field({ id, label, error, children }) {
 function EventDialog({ open, event, clients, onSave, onClose }) {
   const id = useId()
   const myId = useSelector((state) => String(state.auth.user?.id ?? ''))
-  const { data: usersData } = useGetAdminUsersQuery(undefined, { skip: !open })
-  const hosts = (usersData?.users ?? []).filter((u) => u.roleName !== 'Client' && u.status === 'active')
+  const { data: usersData } = useGetAdminUsersQuery({ role: 'firm', status: 'active' }, { skip: !open })
+  const hosts = usersData?.users ?? []
   const [form, setForm] = useState(() => emptyForm(myId))
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)

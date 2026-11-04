@@ -28,6 +28,8 @@ export function useChatNotifications() {
     const onTasksChanged = () => dispatch(baseApi.util.invalidateTags(['Tasks', 'Dashboard']))
     // A meeting was scheduled, changed, held or cancelled on a matter they're part of
     const onEventsChanged = () => dispatch(baseApi.util.invalidateTags(['Events', 'Dashboard']))
+    // A file was shared or removed on a matter they're part of
+    const onDocumentsChanged = () => dispatch(baseApi.util.invalidateTags(['Documents', 'OneDrive', 'Dashboard']))
     // A client taken off one of their matters: it leaves the switcher (the portal moves to their next
     // matter); the server has already cut its live updates
     const onMatterRemoved = () => {
@@ -35,13 +37,14 @@ export function useChatNotifications() {
       toast.info('You no longer have access to one of your matters', { description: "Contact your attorney's office if you think this is a mistake." })
     }
     // Back after a drop: anything that arrived meanwhile only shows in fresh counts
-    const onReconnect = () => dispatch(baseApi.util.invalidateTags(['Matters', 'AdminDashboard', 'Activity']))
+    const onReconnect = () => dispatch(baseApi.util.invalidateTags(['Matters', 'AdminDashboard', 'Activity', 'Documents']))
 
     socket.on('unread', onUnread)
     socket.on('firm-unread', onFirmUnread)
     socket.on('activity', onActivity)
     socket.on('tasks-changed', onTasksChanged)
     socket.on('events-changed', onEventsChanged)
+    socket.on('documents-changed', onDocumentsChanged)
     socket.on('matter-removed', onMatterRemoved)
     socket.io.on('reconnect', onReconnect)
     return () => {
@@ -50,6 +53,7 @@ export function useChatNotifications() {
       socket.off('activity', onActivity)
       socket.off('tasks-changed', onTasksChanged)
       socket.off('events-changed', onEventsChanged)
+      socket.off('documents-changed', onDocumentsChanged)
       socket.off('matter-removed', onMatterRemoved)
       socket.io.off('reconnect', onReconnect)
     }
