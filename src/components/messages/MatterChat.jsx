@@ -102,7 +102,9 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
       const tooBig = maxBytes && file.size > maxBytes
       if (problem) {
         toast.error(`${file.name} can't be sent in the chat`, {
-          description: tooBig ? `Files in the chat can be up to ${formatBytes(maxBytes)}. Upload it in Documents → OneDrive instead.` : problem,
+          description: tooBig
+            ? `Files in the chat can be up to ${formatBytes(maxBytes)}.${viewer === 'firm' ? ' Upload it in Documents → OneDrive instead.' : ''}`
+            : problem,
         })
       }
       return !problem

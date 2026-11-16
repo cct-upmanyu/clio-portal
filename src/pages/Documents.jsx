@@ -3,7 +3,7 @@ import PageHeader from '../components/ui/PageHeader'
 import MatterDocuments from '../components/documents/MatterDocuments'
 import { useMatters } from '../hooks/useMatters'
 
-// Portal documents (files sent in the chat) and the matter's OneDrive folder, in two tabs. Fills the
+// Portal documents (files sent in the chat); the firm also gets the matter's OneDrive folder as a second tab. Fills the
 // screen: the lists scroll inside, the tabs and toolbar stay put.
 function Documents() {
   const { selectedMatter } = useMatters()

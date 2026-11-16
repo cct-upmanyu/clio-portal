@@ -78,7 +78,7 @@ function DocumentList({ crmMatterId, firm = false, emptyText }) {
 
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-2 py-2 text-xs text-muted">
         <span>{isLoading ? 'Loading…' : countLabel(documents.length)}</span>
-        <span className="max-sm:hidden">Files sent in the chat · Other files are in the OneDrive tab</span>
+        <span className="max-sm:hidden">{firm ? 'Files sent in the chat · Other files are in the OneDrive tab' : 'Files sent in the chat'}</span>
       </div>
 
       <PreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} onDownload={download} linkFor={linkFor} />

@@ -8,11 +8,13 @@ const VIEWS = [
   { id: 'onedrive', label: 'OneDrive' },
 ]
 
-// A matter's documents in two tabs: Portal documents (files sent in the chat) and OneDrive (the matter's
-// folder, live: browse, preview, upload into any folder). The open tab is kept in the URL (?docs=onedrive).
+// A matter's documents. The firm gets two tabs: Portal documents (files sent in the chat) and OneDrive (the
+// matter's folder, live: browse, preview, upload into any folder), the open one kept in the URL
+// (?docs=onedrive). Clients only get Portal documents: the OneDrive folder is the firm's.
 function MatterDocuments({ crmMatterId, firm = false }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const view = VIEWS.some((v) => v.id === searchParams.get('docs')) ? searchParams.get('docs') : VIEWS[0].id
+  const views = firm ? VIEWS : VIEWS.slice(0, 1)
+  const view = views.some((v) => v.id === searchParams.get('docs')) ? searchParams.get('docs') : views[0].id
 
   const show = (id) => setSearchParams((params) => {
     const next = new URLSearchParams(params)
@@ -20,6 +22,18 @@ function MatterDocuments({ crmMatterId, firm = false }) {
     else next.set('docs', id)
     return next
   }, { replace: true })
+
+  if (!firm) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <DocumentList
+          crmMatterId={crmMatterId}
+          firm={false}
+          emptyText="Files you and your legal team send in the chat appear here."
+        />
+      </div>
+    )
+  }
 
   // Fills its parent's height: the tabs stay put and each view scrolls inside
   return (
@@ -32,9 +46,7 @@ function MatterDocuments({ crmMatterId, firm = false }) {
           <DocumentList
             crmMatterId={crmMatterId}
             firm={firm}
-            emptyText={firm
-              ? 'Files sent in this matter’s chat appear here. Other files are in the OneDrive tab.'
-              : 'Files you and your legal team send in the chat appear here. Other files are in the OneDrive tab.'}
+            emptyText="Files sent in this matter’s chat appear here. Other files are in the OneDrive tab."
           />
         ) : (
           <OneDriveBrowser crmMatterId={crmMatterId} firm={firm} />
