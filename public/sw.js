@@ -1,7 +1,7 @@
 // Service worker: makes the portal installable and keeps the app shell available offline.
 // API calls (/server/...) are never cached, so client data always comes fresh from the backend.
 // Bump VERSION to drop old caches after a change to this file.
-const VERSION = 'v1'
+const VERSION = 'v2'
 const CACHE = `portal-${VERSION}`
 const SHELL = '/'
 
@@ -17,6 +17,13 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+// The copy is taken now, before the response goes back to the page: once the page reads the body it can't be copied
+const keep = (key, response) => {
+  if (!response.ok) return
+  const copy = response.clone()
+  caches.open(CACHE).then((cache) => cache.put(key, copy))
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
@@ -28,7 +35,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) caches.open(CACHE).then((cache) => cache.put(SHELL, response.clone()))
+          keep(SHELL, response)
           return response.ok ? response : caches.match(SHELL).then((cached) => cached || response)
         })
         .catch(() => caches.match(SHELL)),
@@ -40,7 +47,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-        if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()))
+        keep(request, response)
         return response
       })),
     )
@@ -51,7 +58,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((cached) => {
       const network = fetch(request).then((response) => {
-        if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()))
+        keep(request, response)
         return response
       })
       return cached || network

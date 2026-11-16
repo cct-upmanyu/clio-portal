@@ -4,7 +4,8 @@ import { clearAuth, setAccessDenied } from "../slices/authSlice";
 import { toast } from "../../utils/toast";
 
 const SESSION_ERROR_CODES = ["NOT_SIGNED_IN", "SESSION_EXPIRED", "INVALID_SESSION", "ACCOUNT_DISABLED"];
-const SILENT_ENDPOINTS = ["getMe"];
+// Background checks: a failure must never toast (getSsoConfig failing just hides the Zoho button)
+const SILENT_ENDPOINTS = ["getMe", "getSsoConfig"];
 
 const isSessionError = (error) => error?.status === 401 && SESSION_ERROR_CODES.includes(error?.data?.code);
 const isForbidden = (error) => error?.status === 403 && error?.data?.code === "FORBIDDEN";
@@ -26,6 +27,8 @@ const baseQuery = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   const { error } = result;
   if (!error) return result;
+  // Cancelled by the app itself (e.g. the login page clearing the cache on arrival), not a network failure
+  if (api.signal?.aborted) return result;
 
   // The startup session check fails quietly: the guard just sends the user to /login
   const silent = SILENT_ENDPOINTS.includes(api.endpoint);
