@@ -36,6 +36,21 @@ export const messageApi = baseApi.injectEndpoints({
         }
       },
     }),
+    // A file sent in the chat: { crmMatterId, fileName, size, contentType?, body?, html?, clientMessageId } →
+    // { message ('processing'), document, uploadUrl? } (no uploadUrl when a retry finds it already sent).
+    // The message is saved now, so it shows as uploading even after a reload; completing the upload sends it.
+    startChatUpload: builder.mutation({
+      query: ({ crmMatterId, ...body }) => ({ url: `/messages/matters/${crmMatterId}/messages/uploads`, method: "POST", body }),
+      transformResponse: (response) => response.data,
+      async onQueryStarted({ crmMatterId }, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(upsertMessage(crmMatterId, data.message));
+        } catch {
+          // The thread marks the message as not sent
+        }
+      },
+    }),
     // Client: clears this matter's badge in the switcher straight away, without refetching the matters list.
     // Firm user: clears the matter from the admin dashboard (for every admin)
     markMatterRead: builder.mutation({
@@ -51,4 +66,12 @@ export const messageApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetMessagesQuery, useSendMessageMutation, useMarkMatterReadMutation } = messageApi;
+export const { useGetMessagesQuery, useSendMessageMutation, useMarkMatterReadMutation, useStartChatUploadMutation,
+} = messageApi;
+
+// Adds a message to the open chat, or replaces the copy already there (status changes: uploading → sent / failed)
+export const upsertMessage = (crmMatterId, message) => messageApi.util.updateQueryData("getMessages", crmMatterId, ({ messages }) => {
+  const at = messages.findIndex((m) => String(m.id) === String(message.id));
+  if (at >= 0) messages[at] = { ...messages[at], ...message, mine: messages[at].mine };
+  else messages.push(message);
+});

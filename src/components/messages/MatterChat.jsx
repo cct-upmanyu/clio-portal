@@ -113,13 +113,18 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
   }
 
   const messages = useMemo(() => {
-    const shown = saved.map((m) => ({
+    // A file still uploading from this tab shows from the outbox (with its progress) until it's sent;
+    // one uploading elsewhere, or before a reload, shows from the server as uploading
+    const outboxIds = new Set(outbox.map((p) => p.clientMessageId))
+    const savedByClientId = new Map(saved.filter((m) => m.clientMessageId).map((m) => [m.clientMessageId, m]))
+    const usable = (a) => !a.deleted && (!a.status || a.status === 'ready')
+    const shown = saved.filter((m) => !(m.status === 'processing' && outboxIds.has(m.clientMessageId))).map((m) => ({
       id: m.id, author: authorOf(m), name: m.mine ? (nameOf(m.sender) || myName || 'You') : authorOf(m), fromMe: m.mine, body: m.body, html: m.html, sentAt: m.sentAt,
       attachment: m.attachment && {
         ...m.attachment,
-        onDownload: () => download(m.attachment),
+        onDownload: usable(m.attachment) ? () => download(m.attachment) : undefined,
         // Only files the portal can show; the preview's details line says who sent it and when
-        onPreview: previewKind(m.attachment.name) ? () => setPreviewDoc({
+        onPreview: usable(m.attachment) && previewKind(m.attachment.name) ? () => setPreviewDoc({
           id: m.attachment.documentId, name: m.attachment.name, size: m.attachment.size,
           mine: m.mine, uploadedBy: { name: authorOf(m) }, uploadedAt: m.sentAt,
         }) : undefined,
@@ -127,9 +132,8 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
       receipt: m.mine ? receiptFor(m, firmReadAt, contactReads) : undefined,
     }))
     // The socket can bring a message back before its own POST does
-    const savedIds = new Set(saved.map((m) => m.clientMessageId).filter(Boolean))
     const pending = outbox
-      .filter((p) => !savedIds.has(p.clientMessageId))
+      .filter((p) => !savedByClientId.has(p.clientMessageId) || savedByClientId.get(p.clientMessageId).status === 'processing')
       .map((p) => ({
         id: p.clientMessageId, author: 'You', name: myName || 'You', fromMe: true, body: p.body, html: p.html, sentAt: p.sentAt,
         attachment: p.file && { name: p.file.name, size: p.file.size, progress: p.documentId ? null : p.progress },

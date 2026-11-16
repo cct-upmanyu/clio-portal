@@ -6,13 +6,16 @@ import { formatDateTime, formatMessageTime, formatTime } from '../../utils/dates
 import { formatBytes } from '../../utils/files'
 import { sanitizeHtml } from '../../utils/richText'
 
-// A file sent with the message. `progress` (0-1): still uploading; `deleted`: the firm removed it.
+// A file sent with the message. `progress` (0-1): uploading from this tab; `status` 'uploading': uploading
+// from somewhere else (or before a reload); 'failed': it never arrived; `deleted`: the firm removed it.
 function Attachment({ attachment }) {
-  const { name, size, progress, deleted, onDownload, onPreview } = attachment
+  const { name, size, progress, deleted, status, onDownload, onPreview } = attachment
   const uploading = typeof progress === 'number'
+  const elsewhere = !uploading && status === 'uploading'
+  const failed = status === 'failed'
 
   return (
-    <div className={`flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-white p-2 ${deleted ? 'opacity-60' : ''}`}>
+    <div className={`flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-white p-2 ${deleted || failed ? 'opacity-60' : ''}`}>
       <div className="flex min-w-0 items-center gap-2.5">
         <FileTile name={name} size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
@@ -21,13 +24,16 @@ function Attachment({ attachment }) {
               {name}
             </button>
           ) : (
-            <span className={`truncate text-[13px] font-medium ${deleted ? 'line-through' : ''}`}>{name}</span>
+            <span className={`truncate text-[13px] font-medium ${deleted || failed ? 'line-through' : ''}`}>{name}</span>
           )}
           <span className="text-[11px] text-muted">
-            {deleted ? 'File removed' : uploading ? `Uploading · ${Math.round(progress * 100)}%` : formatBytes(size)}
+            {deleted ? 'File removed'
+              : failed ? "Upload didn't finish · send the file again"
+                : uploading ? `Uploading · ${Math.round(progress * 100)}%`
+                  : elsewhere ? `Uploading… · ${formatBytes(size)}` : formatBytes(size)}
           </span>
         </span>
-        {onDownload && !deleted && (
+        {onDownload && !deleted && !failed && (
           <button
             type="button"
             onClick={onDownload}

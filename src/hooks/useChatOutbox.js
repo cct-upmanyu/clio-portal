@@ -1,7 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { uploadDocument } from './useDocuments'
-import { messageApi } from '../redux/api/messageApi'
+import { problemText, putWithPings } from './useDocuments'
+import { documentApi } from '../redux/api/documentApi'
+import { messageApi, upsertMessage } from '../redux/api/messageApi'
 import { toast } from '../utils/toast'
 
 // Chat messages on their way, kept outside the chat component: an upload carries on, and is still shown
@@ -29,21 +30,33 @@ const current = (key, id) => (outboxes.get(key) ?? EMPTY).find((p) => p.clientMe
 
 const newClientMessageId = () => crypto.randomUUID().replaceAll('-', '')
 
-// A file goes to Stratus first (kept on retry once uploaded), then the message is sent with it
+// A file: its message is saved first (everyone sees it uploading, even after a reload), the file goes
+// straight to Stratus while the server is pinged each minute, then completing it sends the message.
+// A retry asks again with the same clientMessageId: same message, fresh upload link.
+const sendFile = async (dispatch, key, crmMatterId, id, item) => {
+  const started = await dispatch(messageApi.endpoints.startChatUpload.initiate({
+    crmMatterId, fileName: item.file.name, size: item.file.size, contentType: item.file.type || undefined,
+    body: item.html ? undefined : item.body || undefined, html: item.html || undefined, clientMessageId: id,
+  })).unwrap()
+  const documentId = started.document?.id
+  if (started.uploadUrl) {
+    await putWithPings(dispatch, crmMatterId, documentId, started.uploadUrl, item.file, (progress) => patch(key, id, { progress }))
+    await dispatch(documentApi.endpoints.completeDocumentUpload.initiate({ crmMatterId, documentId })).unwrap()
+    dispatch(upsertMessage(crmMatterId, { ...started.message, status: 'sent', attachment: started.message.attachment && { ...started.message.attachment, status: 'ready' } }))
+  }
+}
+
 const deliver = async (dispatch, key, crmMatterId, id) => {
   const item = current(key, id)
   if (!item) return
   patch(key, id, { failed: false })
   try {
-    let { documentId } = item
-    if (item.file && !documentId) {
-      documentId = (await uploadDocument(dispatch, crmMatterId, item.file, { onProgress: (progress) => patch(key, id, { progress }) })).id
-      patch(key, id, { documentId })
-    }
-    await dispatch(messageApi.endpoints.sendMessage.initiate({ crmMatterId, body: item.body || undefined, html: item.html || undefined, documentId, clientMessageId: id })).unwrap()
+    if (item.file) await sendFile(dispatch, key, crmMatterId, id, item)
+    else await dispatch(messageApi.endpoints.sendMessage.initiate({ crmMatterId, body: item.body || undefined, html: item.html || undefined, clientMessageId: id })).unwrap()
     update(key, (items) => items.filter((p) => p.clientMessageId !== id))
   } catch (err) {
-    if (item.file && !err.shown && err.message) toast.error(`${item.file.name} wasn't sent`, { description: err.message })
+    const description = item.file ? problemText(err) : null
+    if (description) toast.error(`${item.file.name} wasn't sent`, { description })
     patch(key, id, { failed: true })
   }
 }

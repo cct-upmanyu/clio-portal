@@ -23,6 +23,10 @@ export const documentApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data.document,
       invalidatesTags: (result, error) => (error ? [] : CHANGES),
     }),
+    // "Still sending", about once a minute during an upload, so it isn't taken for abandoned
+    pingDocumentUpload: builder.mutation({
+      query: ({ crmMatterId, documentId }) => ({ url: `/matters/${crmMatterId}/documents/${documentId}/progress`, method: "POST" }),
+    }),
     // A fresh link each time (they expire in minutes), so it isn't cached
     getDocumentDownload: builder.mutation({
       query: ({ crmMatterId, documentId, purpose = "download" }) => ({ url: `/matters/${crmMatterId}/documents/${documentId}/download?purpose=${purpose}` }),

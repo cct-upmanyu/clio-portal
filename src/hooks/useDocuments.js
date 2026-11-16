@@ -10,7 +10,20 @@ import { toast } from '../utils/toast'
 const IN_MEMORY_DOWNLOAD_BYTES = 100 * 1024 * 1024
 
 // The message to show for a failed step, or null when the app already showed one
-const problemText = (err) => (isHandledGlobally(err) ? null : err?.data?.message || err?.message || 'Please try again.')
+export const problemText = (err) => (isHandledGlobally(err) ? null : err?.data?.message || err?.message || 'Please try again.')
+
+const PING_MS = 60 * 1000
+
+// PUTs the file to Stratus, telling the server about once a minute that it's still going: an upload that
+// goes quiet (reload, closed tab, lost connection) is cleared up by the server's stale-upload job
+export async function putWithPings(dispatch, crmMatterId, documentId, uploadUrl, file, onProgress) {
+  const ping = setInterval(() => dispatch(documentApi.endpoints.pingDocumentUpload.initiate({ crmMatterId, documentId })), PING_MS)
+  try {
+    await putFile(uploadUrl, file, onProgress)
+  } finally {
+    clearInterval(ping)
+  }
+}
 
 // Uploads one file to a matter: asks for a pre-signed URL, PUTs the file straight to Stratus, then
 // confirms it. Resolves with the saved document. Errors carry `shown` when already toasted globally.
@@ -20,7 +33,7 @@ export async function uploadDocument(dispatch, crmMatterId, file, { visibility, 
     const { document, uploadUrl } = await dispatch(documentApi.endpoints.startDocumentUpload.initiate({
       crmMatterId, fileName: file.name, size: file.size, contentType: file.type || undefined, visibility,
     })).unwrap()
-    await putFile(uploadUrl, file, onProgress)
+    await putWithPings(dispatch, crmMatterId, document.id, uploadUrl, file, onProgress)
     return await dispatch(documentApi.endpoints.completeDocumentUpload.initiate({ crmMatterId, documentId: document.id })).unwrap()
   } catch (err) {
     const message = problemText(err)

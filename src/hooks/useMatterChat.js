@@ -64,6 +64,21 @@ export function useMatterChat(crmMatterId) {
         return rest
       })
     }
+    // A file message changed state: uploading → sent, or failed (only its sender keeps seeing a failed one)
+    const onMessageUpdated = (message) => {
+      if (!isThisMatter(message)) return
+      const mine = String(message.sender?.id) === myId
+      dispatch(messageApi.util.updateQueryData('getMessages', crmMatterId, (data) => {
+        const at = data.messages.findIndex((m) => String(m.id) === String(message.id))
+        if (message.status === 'failed' && !mine) {
+          if (at >= 0) data.messages.splice(at, 1)
+        } else if (at >= 0) {
+          data.messages[at] = { ...message, mine }
+        } else {
+          data.messages.push({ ...message, mine })
+        }
+      }))
+    }
     // Read receipts, live: the firm read the chat (everyone gets this), or a client did (firm users only)
     const onRead = (payload) => {
       if (!isThisMatter(payload)) return
@@ -103,6 +118,7 @@ export function useMatterChat(crmMatterId) {
     socket.on('connect', join)
     socket.on('disconnect', onDisconnect)
     socket.on('message', onMessage)
+    socket.on('message-updated', onMessageUpdated)
     socket.on('presence', onPresence)
     socket.on('read', onRead)
     socket.on('receipts', onReceipts)
@@ -115,6 +131,7 @@ export function useMatterChat(crmMatterId) {
       socket.off('connect', join)
       socket.off('disconnect', onDisconnect)
       socket.off('message', onMessage)
+      socket.off('message-updated', onMessageUpdated)
       socket.off('presence', onPresence)
       socket.off('read', onRead)
       socket.off('receipts', onReceipts)
