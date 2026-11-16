@@ -16,7 +16,12 @@ function GuestOnly() {
   }, [isAuthInitialized, authCheckFailed])
 
   if (!isAuthInitialized && !authCheckFailed) return null
-  if (isAuthenticated) return <Navigate to={location.state?.from?.pathname || '/'} replace />
+  if (isAuthenticated) {
+    // ?from=… (the CRM widget's "Open Admin Console"): already signed in, so go straight there
+    const from = new URLSearchParams(location.search).get('from')
+    const safeFrom = from?.startsWith('/') && !from.startsWith('//') ? from : null
+    return <Navigate to={location.state?.from?.pathname || safeFrom || '/'} replace />
+  }
   return <Outlet />
 }
 

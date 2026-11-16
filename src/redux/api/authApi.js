@@ -20,6 +20,15 @@ export const authApi = baseApi.injectEndpoints({
     login: builder.mutation({
       query: (body) => ({ url: "/auth/login", method: "POST", body }),
     }),
+    // Whether "Sign in with Zoho" is set up on the server ({ zoho: boolean })
+    getSsoConfig: builder.query({
+      query: () => "/auth/sso/config",
+      transformResponse: (response) => response.data,
+    }),
+    // The one-time ticket from the Zoho redirect: same result as login (signed in, or the MFA step)
+    completeZohoSso: builder.mutation({
+      query: (ticket) => ({ url: "/auth/sso/zoho/complete", method: "POST", body: { ticket } }),
+    }),
     // "Email me a sign-in code": the reply is the same whether or not the account exists
     requestLoginCode: builder.mutation({
       query: (body) => ({ url: "/auth/login/code", method: "POST", body }),
@@ -96,7 +105,7 @@ export const authApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useGetMeQuery,
+  useGetSsoConfigQuery, useCompleteZohoSsoMutation, useGetMeQuery,
   useLoginMutation,
   useLogoutMutation,
   useRequestLoginCodeMutation,

@@ -17,6 +17,7 @@ import Bills from './pages/Bills.jsx'
 import Settings from './pages/settings/Settings.jsx'
 import SecuritySettings from './pages/settings/SecuritySettings.jsx'
 import Login from './pages/auth/Login.jsx'
+import SsoCallback from './pages/auth/SsoCallback.jsx'
 import MfaSetup from './pages/auth/MfaSetup.jsx'
 import MfaVerify from './pages/auth/MfaVerify.jsx'
 import OtpRequest from './pages/auth/OtpRequest.jsx'
@@ -56,6 +57,7 @@ function App() {
 
         <Route element={<GuestOnly />}>
           <Route path="/login" element={<Login />} />
+          <Route path="/login/sso" element={<SsoCallback />} />
           <Route path="/login/mfa" element={<MfaVerify />} />
           <Route path="/login/mfa/setup" element={<MfaSetup />} />
           <Route path="/login/code" element={<OtpRequest />} />

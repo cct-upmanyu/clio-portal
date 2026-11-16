@@ -16,13 +16,14 @@ export function useFinishSignIn() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  return useCallback((user, { firstVisit = false } = {}) => {
+  // `from`: where to go when the page wasn't reached with router state (Sign in with Zoho comes back by redirect)
+  return useCallback((user, { firstVisit = false, from } = {}) => {
     dispatch(setAuthUser(user))
     const greeting = firstVisit ? 'Welcome' : 'Welcome back'
     toast.success(user?.firstName ? `${greeting}, ${user.firstName}` : greeting, {
       description: 'You are signed in to the Client Portal.',
     })
-    navigate(location.state?.from?.pathname || '/', { replace: true })
+    navigate(location.state?.from?.pathname || from || '/', { replace: true })
   }, [dispatch, navigate, location.state])
 }
 
@@ -34,7 +35,8 @@ export function useContinueSignIn() {
 
   return useCallback((data, options) => {
     if (data?.mfaRequired) {
-      navigate(data.mfaSetupRequired ? '/login/mfa/setup' : '/login/mfa', { replace: true, state: { from: location.state?.from } })
+      const from = location.state?.from || (options?.from ? { pathname: options.from } : undefined)
+      navigate(data.mfaSetupRequired ? '/login/mfa/setup' : '/login/mfa', { replace: true, state: { from } })
       return
     }
     finishSignIn(data, options)

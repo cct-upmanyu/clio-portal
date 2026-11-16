@@ -5,7 +5,8 @@ import AuthLayout, { AuthHeading } from '../../components/auth/AuthLayout'
 import PasswordInput from '../../components/auth/PasswordInput'
 import { MailIcon } from '../../components/ui/icons'
 import { inputClass, inputErrorClass, labelClass, linkClass, primaryButtonClass, secondaryButtonClass } from '../../components/auth/styles'
-import { useLoginMutation } from '../../redux/api/authApi'
+import { useGetSsoConfigQuery, useLoginMutation } from '../../redux/api/authApi'
+import { env } from '../../config/env'
 import { baseApi, isHandledGlobally } from '../../redux/api/baseApi'
 import { toastAccountDisabled, toastAccountProblem } from '../../utils/accountProblem'
 import { toast } from '../../utils/toast'
@@ -13,6 +14,27 @@ import { useContinueSignIn } from '../../hooks/useSignInFlow'
 import { shouldValidateOnBlur, validateEmail, validateLoginPassword } from '../../utils/validation'
 
 const validate = { email: validateEmail, password: validateLoginPassword }
+
+// Why "Sign in with Zoho" sent the user back here (?sso_error=… from the backend)
+const SSO_ERRORS = {
+  no_account: ['No firm account for that Zoho user', 'Sign in with Zoho works for staff the firm has already invited. Use the same email as your portal account, or sign in with your password.'],
+  invite_pending: ['Finish your invitation first', 'Open the invitation email and set up your account, then you can sign in with Zoho.'],
+  disabled: ['Your access is disabled', 'Contact an administrator.'],
+  cancelled: ['Sign in with Zoho was cancelled', ''],
+  expired: ['That sign-in took too long', 'Please try Sign in with Zoho again.'],
+  no_email: ['Zoho did not share a verified email', 'Please sign in with your password.'],
+  not_configured: ['Sign in with Zoho isn’t set up', 'Please sign in with your password.'],
+  zoho_error: ['Sign in with Zoho failed', 'Please try again, or sign in with your password.'],
+}
+
+const ZohoMark = () => (
+  <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true">
+    <rect x="2" y="5" width="9" height="9" rx="1.5" fill="#E42527" />
+    <rect x="13" y="5" width="9" height="9" rx="1.5" fill="#089949" />
+    <rect x="2" y="15" width="9" height="5" rx="1.5" fill="#F9B21D" />
+    <rect x="13" y="15" width="9" height="5" rx="1.5" fill="#226DB4" />
+  </svg>
+)
 
 function Login() {
   const continueSignIn = useContinueSignIn()
@@ -26,6 +48,24 @@ function Login() {
   const emailRef = useRef(null)
   const passwordRef = useRef(null)
   const [login, { isLoading }] = useLoginMutation()
+  const { data: sso } = useGetSsoConfigQuery()
+  const query = new URLSearchParams(location.search)
+  const fromParam = query.get('from')
+  const from = location.state?.from?.pathname || (fromParam?.startsWith('/') && !fromParam.startsWith('//') ? fromParam : '/')
+  const zohoStart = `${env.apiUrl}/auth/sso/zoho/start?from=${encodeURIComponent(from)}`
+  // Opened from the CRM widget (?sso=zoho): go straight to Zoho, no click needed
+  const autoZoho = query.get('sso') === 'zoho'
+
+  useEffect(() => {
+    if (autoZoho && sso?.zoho) window.location.assign(zohoStart)
+  }, [autoZoho, sso?.zoho, zohoStart])
+
+  useEffect(() => {
+    const reason = new URLSearchParams(location.search).get('sso_error')
+    if (!reason) return
+    const [title, description] = SSO_ERRORS[reason] || SSO_ERRORS.zoho_error
+    toast.error(title, description ? { description } : undefined)
+  }, [location.search])
 
   // Drop anything cached for the previous user
   useEffect(() => {
@@ -118,6 +158,14 @@ function Login() {
         <MailIcon className="size-[18px]" />
         Email me a sign-in code
       </Link>
+
+      {sso?.zoho && (
+        // A full page load: the browser goes to Zoho and comes back to /login/sso
+        <a href={zohoStart} className={secondaryButtonClass}>
+          <ZohoMark />
+          Staff: sign in with Zoho
+        </a>
+      )}
     </AuthLayout>
   )
 }
