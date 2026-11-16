@@ -17,7 +17,7 @@ const validate = { email: validateEmail, password: validateLoginPassword }
 
 // Why "Sign in with Zoho" sent the user back here (?sso_error=… from the backend)
 const SSO_ERRORS = {
-  no_account: ['No firm account for that Zoho user', 'Sign in with Zoho works for staff the firm has already invited. Use the same email as your portal account, or sign in with your password.'],
+  no_account: ['No firm account for that Zoho user', 'Use the Zoho account with the same email as your portal account, or sign in with your password.'],
   invite_pending: ['Finish your invitation first', 'Open the invitation email and set up your account, then you can sign in with Zoho.'],
   disabled: ['Your access is disabled', 'Contact an administrator.'],
   cancelled: ['Sign in with Zoho was cancelled', ''],
@@ -163,7 +163,7 @@ function Login() {
         // A full page load: the browser goes to Zoho and comes back to /login/sso
         <a href={zohoStart} className={secondaryButtonClass}>
           <ZohoMark />
-          Staff: sign in with Zoho
+          Sign in with Zoho
         </a>
       )}
     </AuthLayout>
