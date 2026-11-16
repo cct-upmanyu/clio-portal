@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Avatar from '../ui/Avatar'
 import FileTile from '../ui/FileTile'
 import { CheckIcon, CircleIcon, DownloadIcon } from '../ui/icons'
 import { formatDateTime, formatMessageTime, formatTime } from '../../utils/dates'
 import { formatBytes } from '../../utils/files'
+import { sanitizeHtml } from '../../utils/richText'
 
 // A file sent with the message. `progress` (0-1): still uploading; `deleted`: the firm removed it.
 function Attachment({ attachment }) {
@@ -117,7 +118,9 @@ function Receipt({ receipt }) {
 // full date and time and the avatar go with it; the rest of the run sits under it with just the time.
 // `receipt` (my messages only): see MatterChat. The avatar shrinks on phones so the text gets the room.
 function MessageBubble({ message, firstOfRun }) {
-  const { fromMe, author, name, body, sentAt, attachment, sending, failed, onRetry, receipt } = message
+  const { fromMe, author, name, body, html, sentAt, attachment, sending, failed, onRetry, receipt } = message
+  // Cleaned again here, whatever the server stored
+  const safeHtml = useMemo(() => (html ? sanitizeHtml(html) : ''), [html])
   const who = name || author
   const avatar = firstOfRun
     ? <span className="mt-6 shrink-0 max-sm:mt-5"><Avatar name={who} size="chat" /></span>
@@ -141,7 +144,9 @@ function MessageBubble({ message, firstOfRun }) {
           fromMe ? 'bg-[#E3F0FC]' : 'bg-[#F1F3F6]'
         }`}>
           {attachment && <Attachment attachment={attachment} />}
-          {body && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink max-sm:text-[13.5px]">{body}</p>}
+          {safeHtml
+            ? <div className="rich-text break-words text-sm leading-relaxed text-ink max-sm:text-[13.5px]" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+            : body && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink max-sm:text-[13.5px]">{body}</p>}
           {failed ? (
             <button type="button" onClick={onRetry} className="cursor-pointer self-end text-[11px] font-medium leading-none text-danger hover:underline">
               Not sent · Retry

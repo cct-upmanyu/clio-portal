@@ -8,6 +8,20 @@
   }
 }
 
+/* Formatted chat messages and the message box (utils/richText.js): Tailwind's reset removes list markers */
+.rich-text ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.25rem 0; }
+.rich-text ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.25rem 0; }
+.rich-text ul ul { list-style-type: circle; }
+.rich-text b { font-weight: 600; }
+.rich-text a { color: var(--color-brand); text-decoration: underline; overflow-wrap: anywhere; }
+.rich-editor { position: relative; }
+.rich-editor[data-empty]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
 /* Toasts (components/ui/Toaster.jsx): drop in from the top, lift out on dismiss */
 .toast-enter {
   animation: toast-in 380ms cubic-bezier(0.21, 1.02, 0.73, 1) both;

@@ -1,44 +1,70 @@
 import { useRef, useState } from 'react'
 import FileTile from '../ui/FileTile'
+import RichTextInput from './RichTextInput'
 import { CloseIcon, PaperclipIcon, SendIcon } from '../ui/icons'
 import { DOCUMENT_ACCEPT, formatBytes } from '../../utils/files'
+import { hasFormatting, sanitizeHtml } from '../../utils/richText'
 
-const MAX_HEIGHT = 160
-
-// Text box + attachments. Enter sends, Shift+Enter adds a new line.
+// Formatted text + attachments. Enter sends, Shift+Enter adds a new line.
+// onSend({ body, html?, files }): `html` only when the text has formatting; `body` is always the plain text.
 // `onTyping`: called on every keystroke, for the "typing…" others see
 function MessageComposer({ onSend, onTyping, allowAttachments = true }) {
-  const [body, setBody] = useState('')
+  const [hasText, setHasText] = useState(false)
   const [files, setFiles] = useState([])
   const fileInputRef = useRef(null)
-  const textRef = useRef(null)
-  const canSend = body.trim().length > 0 || files.length > 0
+  const editorRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
+  const canSend = hasText || files.length > 0
 
-  const autoGrow = (el) => {
-    el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT)}px`
+  const addFiles = (picked) => {
+    if (allowAttachments && picked.length > 0) setFiles((prev) => [...prev, ...picked])
   }
 
   const submit = (e) => {
     e?.preventDefault()
-    if (!canSend) return
-    onSend({ body: body.trim(), files })
-    setBody('')
+    const editor = editorRef.current
+    const body = editor?.text() || ''
+    if (!body && files.length === 0) return
+    const html = body ? sanitizeHtml(editor.html()) : ''
+    onSend({ body, html: hasFormatting(html) ? html : undefined, files })
+    editor?.clear()
+    editor?.focus()
     setFiles([])
-    if (textRef.current) textRef.current.style.height = 'auto'
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault()
-      submit()
-    }
-  }
+  const isFileDrag = (e) => allowAttachments && [...(e.dataTransfer?.types || [])].includes('Files')
 
   return (
-    <form onSubmit={submit} className="border-t border-line bg-white p-3 max-sm:p-2">
+    <form
+      onSubmit={submit}
+      onDragOver={(e) => {
+        if (!isFileDrag(e)) return
+        e.preventDefault()
+        setDragging(true)
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false)
+      }}
+      onDrop={(e) => {
+        if (!isFileDrag(e)) return
+        e.preventDefault()
+        setDragging(false)
+        addFiles([...e.dataTransfer.files])
+      }}
+      className={`border-t border-line bg-white px-3 pb-3 max-sm:px-2 max-sm:pb-2 ${dragging ? 'bg-brand-soft' : ''}`}
+    >
+      <RichTextInput
+        ref={editorRef}
+        onChange={(text) => {
+          setHasText(Boolean(text))
+          if (text) onTyping?.()
+        }}
+        onSubmit={submit}
+        onFiles={addFiles}
+      />
+
       {files.length > 0 && (
-        <ul aria-label="Attachments" className="flex flex-wrap gap-2 pb-2">
+        <ul aria-label="Attachments" className="flex flex-wrap gap-2 pt-2">
           {files.map((file, i) => (
             <li key={`${file.name}-${i}`} className="flex max-w-[260px] items-center gap-2 rounded-lg border border-line bg-canvas py-1 pl-1 pr-1">
               <FileTile name={file.name} size="sm" />
@@ -59,12 +85,13 @@ function MessageComposer({ onSend, onTyping, allowAttachments = true }) {
         </ul>
       )}
 
-      <div className="flex items-end gap-1.5 rounded-xl border border-field bg-white p-1.5 focus-within:border-brand focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
+      <div className="flex items-center gap-2 pt-2">
         {allowAttachments && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach files"
+            title="Attach files"
             className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-body hover:bg-subtle"
           >
             <PaperclipIcon className="size-[18px]" />
@@ -77,38 +104,20 @@ function MessageComposer({ onSend, onTyping, allowAttachments = true }) {
           hidden
           accept={DOCUMENT_ACCEPT}
           onChange={(e) => {
-            const picked = [...e.target.files]
-            setFiles((prev) => [...prev, ...picked])
+            addFiles([...e.target.files])
             e.target.value = ''
           }}
         />
-
-        <label htmlFor="message-input" className="sr-only">Message</label>
-        <textarea
-          id="message-input"
-          ref={textRef}
-          rows={1}
-          value={body}
-          onChange={(e) => {
-            setBody(e.target.value)
-            autoGrow(e.target)
-            if (e.target.value.trim()) onTyping?.()
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
-          className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-sm leading-5 outline-none placeholder:text-muted"
-        />
-
+        <p className="min-w-0 flex-1 truncate text-[11px] text-muted max-sm:invisible">Enter to send · Shift + Enter for a new line</p>
         <button
           type="submit"
           disabled={!canSend}
-          aria-label="Send message"
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
           <SendIcon className="size-4" />
+          Send
         </button>
       </div>
-      <p className="mt-1.5 px-1 text-[11px] text-muted max-sm:hidden">Enter to send · Shift + Enter for a new line</p>
     </form>
   )
 }

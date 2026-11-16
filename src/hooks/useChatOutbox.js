@@ -40,7 +40,7 @@ const deliver = async (dispatch, key, crmMatterId, id) => {
       documentId = (await uploadDocument(dispatch, crmMatterId, item.file, { onProgress: (progress) => patch(key, id, { progress }) })).id
       patch(key, id, { documentId })
     }
-    await dispatch(messageApi.endpoints.sendMessage.initiate({ crmMatterId, body: item.body || undefined, documentId, clientMessageId: id })).unwrap()
+    await dispatch(messageApi.endpoints.sendMessage.initiate({ crmMatterId, body: item.body || undefined, html: item.html || undefined, documentId, clientMessageId: id })).unwrap()
     update(key, (items) => items.filter((p) => p.clientMessageId !== id))
   } catch (err) {
     if (item.file && !err.shown && err.message) toast.error(`${item.file.name} wasn't sent`, { description: err.message })
@@ -48,18 +48,18 @@ const deliver = async (dispatch, key, crmMatterId, id) => {
   }
 }
 
-// { outbox, send({ body, files }), retry(clientMessageId) }. One message per file; the text goes with the first.
+// { outbox, send({ body, html?, files }), retry(clientMessageId) }. One message per file; the text goes with the first.
 export function useChatOutbox(crmMatterId) {
   const dispatch = useDispatch()
   const myId = useSelector((state) => String(state.auth.user?.id ?? ''))
   const key = `${myId}:${crmMatterId}`
   const outbox = useSyncExternalStore(subscribe, () => outboxes.get(key) ?? EMPTY)
 
-  const send = useCallback(({ body, files = [] }) => {
+  const send = useCallback(({ body, html, files = [] }) => {
     const sentAt = new Date().toISOString()
     const items = files.length > 0
-      ? files.map((file, i) => ({ clientMessageId: newClientMessageId(), body: i === 0 ? body : '', file, progress: 0, sentAt }))
-      : [{ clientMessageId: newClientMessageId(), body, sentAt }]
+      ? files.map((file, i) => ({ clientMessageId: newClientMessageId(), body: i === 0 ? body : '', html: i === 0 ? html : undefined, file, progress: 0, sentAt }))
+      : [{ clientMessageId: newClientMessageId(), body, html, sentAt }]
     update(key, (prev) => [...prev, ...items])
     items.forEach((item) => deliver(dispatch, key, crmMatterId, item.clientMessageId))
   }, [dispatch, key, crmMatterId])

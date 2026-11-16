@@ -94,7 +94,7 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
     if (isSuccess && visible) markRead(crmMatterId)
   }, [viewer, crmMatterId, isSuccess, visible, lastMessageId, markRead])
 
-  const handleSend = ({ body, files = [] }) => {
+  const handleSend = ({ body, html, files = [] }) => {
     const usable = files.filter((file) => {
       const maxBytes = attachmentLimits?.maxBytes
       const problem = documentProblem(file, maxBytes ? { maxBytes } : undefined)
@@ -109,12 +109,12 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
     })
     if (!body && usable.length === 0) return
     stopTyping()
-    send({ body, files: usable })
+    send({ body, html, files: usable })
   }
 
   const messages = useMemo(() => {
     const shown = saved.map((m) => ({
-      id: m.id, author: authorOf(m), name: m.mine ? (nameOf(m.sender) || myName || 'You') : authorOf(m), fromMe: m.mine, body: m.body, sentAt: m.sentAt,
+      id: m.id, author: authorOf(m), name: m.mine ? (nameOf(m.sender) || myName || 'You') : authorOf(m), fromMe: m.mine, body: m.body, html: m.html, sentAt: m.sentAt,
       attachment: m.attachment && {
         ...m.attachment,
         onDownload: () => download(m.attachment),
@@ -131,7 +131,7 @@ function MatterChat({ crmMatterId, viewer = 'client', title, emptyText }) {
     const pending = outbox
       .filter((p) => !savedIds.has(p.clientMessageId))
       .map((p) => ({
-        id: p.clientMessageId, author: 'You', name: myName || 'You', fromMe: true, body: p.body, sentAt: p.sentAt,
+        id: p.clientMessageId, author: 'You', name: myName || 'You', fromMe: true, body: p.body, html: p.html, sentAt: p.sentAt,
         attachment: p.file && { name: p.file.name, size: p.file.size, progress: p.documentId ? null : p.progress },
         sending: !p.failed, failed: p.failed, onRetry: () => retry(p.clientMessageId),
       }))

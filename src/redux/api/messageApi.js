@@ -15,12 +15,12 @@ export const messageApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, crmMatterId) => [{ type: "Messages", id: crmMatterId }],
     }),
-    // { crmMatterId, body?, documentId? (a file uploaded first, see useDocumentUpload), clientMessageId }
+    // { crmMatterId, body? | html? (formatted; the server keeps its plain text as body), documentId? (a file uploaded first, see useDocumentUpload), clientMessageId }
     sendMessage: builder.mutation({
-      query: ({ crmMatterId, body, documentId, clientMessageId }) => ({
+      query: ({ crmMatterId, body, html, documentId, clientMessageId }) => ({
         url: `/messages/matters/${crmMatterId}/messages`,
         method: "POST",
-        body: { body, documentId, clientMessageId },
+        body: { body, html, documentId, clientMessageId },
       }),
       // A file sent in the chat is also in the matter's documents
       invalidatesTags: (result, error, { documentId }) => (!error && documentId ? ["Documents"] : []),
